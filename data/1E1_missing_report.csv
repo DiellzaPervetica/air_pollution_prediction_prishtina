@@ -1,0 +1,23 @@
+Column,Missing_Values,Percentage
+datetime,0,0.0
+date,0,0.0
+hour,0,0.0
+interval_start,0,0.0
+A3_MW,0,0.0
+A4_MW,0,0.0
+A5_MW,4,0.042689434364994665
+B1_MW,0,0.0
+B2_MW,0,0.0
+total_generation_mw,0,0.0
+co,3905,41.67556029882604
+no2,238,2.5400213447171827
+o3,236,2.5186766275346852
+pm10,26,0.2774813233724653
+pm25,22,0.23479188900747067
+so2,158,1.6862326574172894
+temperature_2m (°C),0,0.0
+rain (mm),0,0.0
+snowfall (cm),0,0.0
+relative_humidity_2m (%),0,0.0
+wind_direction_10m (°),0,0.0
+wind_speed_10m (km/h),0,0.0

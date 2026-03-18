@@ -1,0 +1,23 @@
+Column,Null_Count
+datetime,0
+date,0
+hour,0
+interval_start,0
+A3_MW,0
+A4_MW,0
+A5_MW,0
+B1_MW,0
+B2_MW,0
+total_generation_mw,0
+co,0
+no2,0
+o3,0
+pm10,0
+pm25,0
+so2,0
+temperature_2m (°C),0
+rain (mm),0
+snowfall (cm),0
+relative_humidity_2m (%),0
+wind_direction_10m (°),0
+wind_speed_10m (km/h),0
