@@ -20,7 +20,7 @@ WEATHER_FEATURES = [
 if __name__ == "__main__":
     df = pd.read_csv(INPUT)
 
-    pictures_dir = Path("../pictures")
+    pictures_dir = Path("../../pictures")
     pictures_dir.mkdir(exist_ok=True)
 
     print("\nCandidate pollutant columns:", POLLUTANTS)
