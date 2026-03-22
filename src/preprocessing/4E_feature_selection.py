@@ -34,6 +34,7 @@ cols_to_drop += [c for c in POLLUTANTS_TO_DROP + STRUCTURAL_TO_DROP if c in df_n
 df_numeric = df_numeric.drop(columns=list(set(cols_to_drop)))
 
 VIF_THRESHOLD = 7.0
+FORCE_KEEP = ["total_generation_mw"]
 X = df_numeric.drop(columns=[TARGET])
 
 constant_cols = [col for col in X.columns if X[col].nunique() <= 1]
@@ -47,6 +48,11 @@ if near_constant_cols:
 while True:
     vif_results = calculate_vif(X)
     vif_results = vif_results.replace([float("inf"), -float("inf")], pd.NA).dropna()
+
+    if vif_results.empty:
+        break
+
+    vif_results = vif_results[~vif_results["Feature"].isin(FORCE_KEEP)]
 
     if vif_results.empty:
         break

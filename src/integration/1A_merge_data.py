@@ -132,11 +132,39 @@ final_cols = [
 
 merged = merged[final_cols]
 
-print("Air quality range:", air["datetime"].min(), "->", air["datetime"].max())
-print("Weather range:", weather["datetime"].min(), "->", weather["datetime"].max())
-print("Energy range:", energy["datetime"].min(), "->", energy["datetime"].max())
-print("Merged shape:", merged.shape)
+
+print("\n================ DATASET SUMMARY ================\n")
+
+print("AIR DATASET")
+print(f"Rows: {air.shape[0]}")
+print(f"Columns: {air.shape[1]}")
+print(f"Total values: {air.shape[0] * air.shape[1]}")
+print(f"Datetime range: {air['datetime'].min()} -> {air['datetime'].max()}")
+print()
+
+print("WEATHER DATASET")
+print(f"Rows: {weather.shape[0]}")
+print(f"Columns: {weather.shape[1]}")
+print(f"Total values: {weather.shape[0] * weather.shape[1]}")
+print(f"Datetime range: {weather['datetime'].min()} -> {weather['datetime'].max()}")
+print()
+
+print("ENERGY DATASET")
+print(f"Rows: {energy.shape[0]}")
+print(f"Columns: {energy.shape[1]}")
+print(f"Total values: {energy.shape[0] * energy.shape[1]}")
+print(f"Datetime range: {energy['datetime'].min()} -> {energy['datetime'].max()}")
+print()
+
+print("MERGED DATASET")
+print(f"Rows: {merged.shape[0]}")
+print(f"Columns: {merged.shape[1]}")
+print(f"Total values: {merged.shape[0] * merged.shape[1]}")
+print(f"Datetime range: {merged['datetime'].min()} -> {merged['datetime'].max()}")
+print()
+
+print("First 5 rows of merged dataset:")
 print(merged.head())
 
-merged.to_csv(output_path, index=False)
+print("\nSaved to:")
 print(output_path)

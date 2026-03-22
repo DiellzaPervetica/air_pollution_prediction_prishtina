@@ -19,8 +19,8 @@ EXCLUDED_COLS = {
     "wind_y_vector"
 }
 
-LOWER_Q = 0.005
-UPPER_Q = 0.995
+LOWER_Q = 0.01
+UPPER_Q = 0.99
 
 df = pd.read_csv(INPUT)
 
