@@ -424,6 +424,10 @@ Ky është hapi themelor i integrimit të të tre burimeve.
 ##### Output
 - `data/1A_merged_data_hourly_2023_2025.csv`
 
+<img width="542" height="133" alt="image" src="https://github.com/user-attachments/assets/4718329f-b2cc-4645-948e-5eace36d9ec4" />
+
+<img width="473" height="373" alt="{E2F813E0-8D5D-442E-B540-48CA917DFA39}" src="https://github.com/user-attachments/assets/a7af8314-e52b-465e-8099-6a97b644b2bf" />
+
 ##### Roli në pipeline
 Ky skript krijon dataset-in e parë të integruar orar, që shërben si bazë për të gjitha hapat pasues.
 
@@ -643,6 +647,8 @@ Ky skript bën validimin final të dataset-it pas trajtimit të mungesave.
 
 ##### Output
 - `data/2D_validated_final_dataset.csv`
+
+<img width="925" height="379" alt="{6F19998C-61F9-47E1-9FA8-C1FC8054795B}" src="https://github.com/user-attachments/assets/8bfc891e-b0cc-4c97-b800-451f3fde22b4" />
 
 ##### Roli në pipeline
 Ky është dataset-i final i pastruar dhe validuar, mbi të cilin kryhen analiza dhe inxhinierim tiparesh.
@@ -865,6 +871,8 @@ Për secilën kolonë numerike:
 ##### Output
 - `data/4B_skewness_handled.csv`
 
+<img width="520" height="328" alt="image" src="https://github.com/user-attachments/assets/cf173685-fe02-43a0-b660-4421f45afdb7" />
+
 ##### Roli në pipeline
 Ky hap i bën shpërndarjet më të përshtatshme për standardizim, analiza lineare dhe modele machine learning.
 
@@ -1015,6 +1023,8 @@ Në fund raportohet:
 
 ##### Output
 - `data/4E_selected_dataset.csv`
+
+<img width="1091" height="703" alt="image" src="https://github.com/user-attachments/assets/66b3f216-ac68-45de-915e-7c55089049b7" />
 
 ##### Roli në pipeline
 Ky është dataset-i final i reduktuar, i përgatitur për modelim statistikor ose machine learning me target `pm25`.
