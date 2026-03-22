@@ -776,5 +776,480 @@ Ky është dataset-i i parë i pasuruar me tipare që modelojnë dinamikat kohor
 
 ---
 
+## Preprocessing
 
+### `4A_outlier_treatment.py`
+Ky skript trajton outlier-at me quantile capping.
+
+#### Input
+- `data/3B_engineered_dataset.csv`
+
+#### Strategjia
+Për secilën kolonë numerike kandidate:
+- kufiri i poshtëm = quantile `0.1%`
+- kufiri i sipërm = quantile `99%`
+
+Vlerat jashtë këtij intervali nuk fshihen, por priten në kufijtë përkatës.
+
+#### Kolonat e përjashtuara
+- `datetime`
+- `date`
+- disa tipare ciklike dhe vektorë strukturorë si:
+  - `hour_sin`
+  - `hour_cos`
+  - `month_sin`
+  - `month_cos`
+  - `wind_x_vector`
+  - `wind_y_vector`
+
+#### Çfarë bën
+- identifikon kolonat numerike kandidate,
+
+<img width="" height="100" alt="image" src="https://github.com/user-attachments/assets/1277d0ad-20f8-4edd-aa83-7c3518c640b5" />
+
+- llogarit kufijtë e poshtëm dhe të sipërm,
+
+<img width="333" height="264" alt="{7637B515-ECC8-42F7-93E4-F51A36886583}" src="https://github.com/user-attachments/assets/5dc44eae-bd83-4230-8c0c-96b366d56d3f" />
+
+- numëron sa vlera u cap-en në secilin krah,
+
+<img width="300" height="64" alt="{868F8310-591A-4475-A72B-6B3610709F19}" src="https://github.com/user-attachments/assets/cc9dd492-043c-4cf0-8eea-6e39a24f3fd0" />
+
+- krijon një raport për tiparet me më shumë vlera të kufizuara.
+
+<img width="304" height="92" alt="{5C06F89A-7C0E-4C98-B3D6-7EB360549105}" src="https://github.com/user-attachments/assets/f774921a-69c9-493e-bb9d-55b0fe23b267" />
+
+#### Output
+- `data/4A_outliers_handled.csv`
+
+#### Roli në pipeline
+Ky hap redukton ndikimin e vlerave ekstreme pa humbur rreshta.
+
+---
+
+### `4B_skewness_treatment.py`
+Ky skript trajton shtrembërimin e shpërndarjes së kolonave numerike.
+
+#### Input
+- `data/4A_outliers_handled.csv`
+
+#### Strategjia
+Për secilën kolonë numerike:
+- llogaritet skewness,
+- nëse `|skew| > 1.0`, zbatohet transformim.
+
+#### Llojet e transformimit
+- nëse kolona ka vetëm vlera jo-negative:
+  - përdoret `log1p`
+- ndryshe:
+  - përdoret `PowerTransformer(method="yeo-johnson")`
+
+#### Çfarë bën
+- krahason skewness para dhe pas transformimit,
+
+<img width="293" height="140" alt="{ACF2D39A-7132-44DE-94FD-02FBADE7EFE2}" src="https://github.com/user-attachments/assets/52ef2624-8f11-497a-a0c8-219132acfe5e" />
+
+- ruan metodën e përdorur për secilën kolonë,
+
+<img width="600" height="283" alt="{54D65469-B661-45E2-8812-109DCE98FE9B}" src="https://github.com/user-attachments/assets/3de4131c-acf9-4a06-80d8-beb30e751223" />
+
+- raporton mean absolute skewness dhe median absolute skewness para/pas.
+
+<img width="" height="86" alt="{27116D5F-1372-4BBB-8835-D8036D487641}" src="https://github.com/user-attachments/assets/33186496-a0f3-45a0-a447-d9ac72219563" />
+
+
+#### Output
+- `data/4B_skewness_handled.csv`
+
+#### Roli në pipeline
+Ky hap i bën shpërndarjet më të përshtatshme për standardizim, analiza lineare dhe modele machine learning.
+
+---
+
+### `4C_visualization_before_after.py`
+Ky skript gjeneron histogramat krahasuese para dhe pas trajtimit të outlier-ave dhe skewness.
+
+#### Input
+- `data/3B_engineered_dataset.csv`
+- `data/4A_outliers_handled.csv`
+- `data/4B_skewness_handled.csv`
+
+#### Tiparet e vizualizuara
+- `pm25`
+- `total_generation_mw`
+- `pollution_stagnation_index`
+- `rain (mm)`
+- `temp_wind_interact`
+
+#### Çfarë bën
+Për secilin atribut:
+- vizaton tre histogramë në të njëjtën figurë:
+  - para trajtimit,
+  - pas trajtimit të outlier-ave,
+  - pas trajtimit të skewness.
+
+#### Output
+Folderi:
+- `pictures/4C_visualization_before_after/`
+
+me figurat:
+
+#### PM2.5 Distribution Comparison
+![PM2.5](pictures/4C_visualization_before_after/pm25_distribution_comparison.png)
+
+#### Total Generation MW Distribution Comparison
+![Total Generation](pictures/4C_visualization_before_after/total_generation_mw_distribution_comparison.png)
+
+#### Pollution Stagnation Index Distribution Comparison
+![Stagnation](pictures/4C_visualization_before_after/pollution_stagnation_index_distribution_comparison.png)
+
+#### Rain (mm) Distribution Comparison
+![Rain](pictures/4C_visualization_before_after/rain_mm_distribution_comparison.png)
+
+#### Temperature-Wind Interaction Distribution Comparison
+![Temp Wind](pictures/4C_visualization_before_after/temp_wind_interact_distribution_comparison.png)
+
+#### Roli ne pipeline
+Ky hap dokumenton vizualisht efektin e transformimeve statistikore.
+
+---
+
+### `4D_feature_scaling.py`
+Ky skript standardizon të gjitha kolonat numerike.
+
+#### Input
+- `data/4B_skewness_handled.csv`
+
+#### Çfarë bën
+- ndan kolonat jo-numerike:
+  - `datetime`
+  - `date`
+<img width="245" height="40" alt="image" src="https://github.com/user-attachments/assets/3b8d43de-8615-4725-8c5f-c773c74ec3f4" />
+
+- standardizon të gjitha kolonat e tjera me `StandardScaler`,
+
+<img width="245" height="107" alt="{51FDEC3D-668F-4A86-8459-33B135196EF7}" src="https://github.com/user-attachments/assets/3f8a062d-ef76-49dc-b919-029f3b898aca" />
+
+- rikombinon kolonat kohore me kolonat e shkallëzuara,
+
+<img width="345" height="40" alt="image" src="https://github.com/user-attachments/assets/e5a9f4c5-a3b1-4bf1-a60e-6a9f03a08a4e" />
+
+- ruan scaler-in e trajnuar.
+
+<img width="239" height="73" alt="{90AB8B67-BC65-4DC9-BC92-374F23CB0AF9}" src="https://github.com/user-attachments/assets/1a0cae99-1434-486b-b814-794fc2c30c57" />
+
+#### Output
+- `data/4D_scaled_dataset.csv`
+- `models/scaler.pkl`
+
+#### Roli në pipeline
+Ky hap siguron që tiparet numerike të jenë në të njëjtën shkallë dhe gati për feature selection ose modelim.
+
+---
+
+### `4E_feature_selection.py`
+Ky skript kryen reduktimin final të tipareve.
+
+#### Input
+- `data/4D_scaled_dataset.csv`
+
+#### Target
+- `pm25`
+
+#### Strategjia e seleksionimit
+
+##### 1. Heqje manuale e kolonave jo të dëshiruara
+Hiqen:
+- ndotësit e tjerë si variabla hyrëse:
+  - `co`
+  - `no2`
+  - `o3`
+  - `pm10`
+  - `so2`
+- kolona strukturore:
+  - `A3_MW`
+  - `A4_MW`
+  - `A5_MW`
+  - `B1_MW`
+  - `B2_MW`
+  - `hour`
+  - `month`
+  - `day_of_week`
+- të gjitha kolonat me `lag` në emër
+- çdo kolonë tjetër që përmban `pm25` përveç target-it
+
+<img width="600" height="170" alt="{EFCA4BD3-8CC8-415E-9549-24C0D552CEE1}" src="https://github.com/user-attachments/assets/4c08beec-c313-4a65-a8df-404cf0206fad" />
+
+##### 2. Heqje e kolonave konstante ose pothuajse konstante
+- kolona me vetëm 1 vlerë unike
+- kolona me devijim standard pothuajse zero
+
+<img width="433" height="108" alt="{4008EF22-1994-45BF-999C-9B987BC2C534}" src="https://github.com/user-attachments/assets/ee46b9fb-c185-4479-baff-13c2531c6685" />
+
+##### 3. VIF-based elimination
+Për kolonat e mbetura:
+- llogaritet `Variance Inflation Factor (VIF)`
+- hiqet iterativisht kolona me VIF më të lartë derisa:
+  - VIF maksimal të jetë më i vogël ose i barabartë me `7.0`
+
+<div>
+<img width="" height="50" alt="image" src="https://github.com/user-attachments/assets/21f5dded-12fd-4750-b587-5a92fffa0e48" />
+</div>
+
+<div>
+<img width="" height="200" alt="image" src="https://github.com/user-attachments/assets/4829919c-e535-4a39-a6cd-b2f6862d06c1" />
+</div>
+
+##### 4. Raportim
+Në fund raportohet:
+- madhësia e dataset-it fillestar,
+- madhësia e dataset-it final,
+- numri i tipareve finale,
+- tiparet e mbajtura, të renditura sipas korrelacionit absolut me `pm25`.
+
+<img width="506" height="151" alt="{7C2D8392-1353-40D2-937B-7035E866EA08}" src="https://github.com/user-attachments/assets/3e56b2a1-22dc-4f9f-843c-b03bd3c7eaee" />
+
+#### Output
+- `data/4E_selected_dataset.csv`
+
+#### Roli në pipeline
+Ky është dataset-i final i reduktuar, i përgatitur për modelim statistikor ose machine learning me target `pm25`.
+
+---
+
+## Artefaktet dhe output-et e krijuara
+
+### Dataset-et e ruajtura ne `data/`
+- `1A_merged_data_hourly_2023_2025.csv`  
+  Dataset-i i parë i integruar orar.
+
+- `2A_cleaned_no_duplicates.csv`  
+  Versioni pa duplikate dhe me `datetime` të validuar.
+
+- `2B_quality_checked.csv`  
+  Versioni pas rregullave të cilësisë.
+
+- `2C_missing_values_handled.csv`  
+  Versioni pas imputimit dhe plotësimit të mungesave.
+
+- `2D_validated_final_dataset.csv`  
+  Dataset-i final i pastruar dhe validuar.
+
+- `3B_engineered_dataset.csv`  
+  Dataset-i me tipare të reja.
+
+- `4A_outliers_handled.csv`  
+  Dataset-i pas outlier capping.
+
+- `4B_skewness_handled.csv`  
+  Dataset-i pas transformimeve kundër skewness.
+
+- `4D_scaled_dataset.csv`  
+  Dataset-i i standardizuar.
+
+- `4E_selected_dataset.csv`  
+  Dataset-i final i reduktuar për modelim.
+
+### Artefakte shtesë
+- `models/scaler.pkl`  
+  Objekti i `StandardScaler` për ripërdorim në inferencë ose pipeline të mëtejshme.
+
+- `data/1B_distinct_values/`  
+  Folder me vlera unike për atributet kryesore.
+
+---
+
+## Vizualizimet e gjeneruara
+
+### 1. Heatmap-at nga analiza fillestare
+#### `pictures/pollutant_vs_predictors_heatmap.png`
+Paraqet korrelacionin ndërmjet ndotësve dhe tipareve të energjisë + motit.
+
+#### `pictures/pollutant_correlation_heatmap.png`
+Paraqet korrelacionin ndërmjet vetë ndotësve atmosferikë.
+
+### 2. Histogramat krahasuese para/pas
+Folderi `pictures/4C_visualization_before_after/` përmban figura që krahasojnë shpërndarjen:
+- para trajtimit,
+- pas trajtimit të outlier-ave,
+- pas trajtimit të skewness.
+
+#### Figurat aktuale
+- `pm25_distribution_comparison.png`
+- `pollution_stagnation_index_distribution_comparison.png`
+- `rain_mm_distribution_comparison.png`
+- `temp_wind_interact_distribution_comparison.png`
+- `total_generation_mw_distribution_comparison.png`
+
+### Figurat e projektit
+
+#### Pollutant vs Predictors Heatmap
+![Pollutant vs Predictors](pictures/pollutant_vs_predictors_heatmap.png)
+
+#### Pollutant Correlation Heatmap
+![Pollutant Correlation](pictures/pollutant_correlation_heatmap.png)
+
+#### PM2.5 Distribution Comparison
+![PM2.5](pictures/4C_visualization_before_after/pm25_distribution_comparison.png)
+
+#### Total Generation MW Distribution Comparison
+![Total Generation](pictures/4C_visualization_before_after/total_generation_mw_distribution_comparison.png)
+
+#### Pollution Stagnation Index Distribution Comparison
+![Stagnation](pictures/4C_visualization_before_after/pollution_stagnation_index_distribution_comparison.png)
+
+#### Rain (mm) Distribution Comparison
+![Rain](pictures/4C_visualization_before_after/rain_mm_distribution_comparison.png)
+
+#### Temperature-Wind Interaction Distribution Comparison
+![Temp Wind](pictures/4C_visualization_before_after/temp_wind_interact_distribution_comparison.png)
+
+## Teknikat e zbatuara dhe lidhja me lëndën
+
+Ky projekt përmbush në mënyrë të drejtpërdrejtë temat kryesore të lëndës “Machine Learning”.
+
+### 1. Data collection
+- Shkarkim dhe konsolidim i të dhënave nga burime të ndryshme.
+- Përdorim i PowerShell, notebook-ut dhe CSV-ve bruto.
+
+### 2. Data integration
+- Bashkim i tre burimeve heterogjene mbi bosht kohor të përbashkët.
+- Harmonizim i formateve të kohës dhe timezone.
+
+### 3. Data cleaning
+- Heqja e duplikateve.
+- Korrigjimi i vlerave jo-logjike.
+- Kufizim i vlerave fizike jashtë intervaleve të pranueshme.
+
+### 4. Missing value handling
+- Forward fill
+- Backfill
+- Plotësim i të dhënave pa heqje agresive të rreshtave
+
+### 5. Validation
+- Kontrolli fizik `PM2.5 <= PM10`
+- Kontrolli i gaps kohore
+- Kontrolli final i `NULL`
+
+### 6. Exploratory data analysis
+- Statistika përmbledhëse
+- Matrica korrelacioni
+- Heatmap-a për target-in dhe predictor-at
+
+### 7. Feature engineering
+- Encodim ciklik i kohës
+- Lag features
+- Rolling features
+- Interaction terms
+- Wind decomposition
+- Domain-inspired stagnation index
+
+### 8. Outlier handling
+- Quantile capping me kufijtë `0.5%` dhe `99.5%`
+- Qasje robuste pa fshirje të rreshtave
+
+### 9. Skewness handling
+- `log1p`
+- `Yeo-Johnson`
+- Krahasim para/pas me statistika dhe vizualizime
+
+### 10. Scaling
+- Standardizim i kolonave numerike me `StandardScaler`
+
+### 11. Feature selection
+- Heqje manuale e kolonave jorelevante ose problematike
+- Heqje e kolonave konstante
+- Reduktim i multikolinearitetit përmes `VIF`
+
+---
+
+## Ekzekutimi i projektit
+
+### Parakushtet
+- Python 3.10+ ose më i ri
+- `pip`
+- mjedis virtual i rekomanduar
+- për skriptin PowerShell: qasje në `aws cli` nëse përdoret shkarkimi nga OpenAQ archive
+
+### Instalimi i librarive
+```bash
+pip install pandas numpy matplotlib seaborn scikit-learn statsmodels
+```
+
+### Ekzekutimi i pipeline-it
+Skriptat ekzekutohen sipas rendit logjik:
+
+```bash
+python src/integration/1A_merge_data.py
+python src/distinct_values/1B_distinct_values.py
+
+python src/data_cleaning/2A_datetime_and_duplicates.py
+python src/data_cleaning/2B_data_quality_cleaning.py
+python src/data_cleaning/2C_missing_values_handling.py
+python src/data_cleaning/2D_validate_final_dataset.py
+
+python src/feature_engineering/3A_target_analysis.py
+python src/feature_engineering/3B_feature_engineering.py
+
+python src/preprocessing/4A_outlier_treatment.py
+python src/preprocessing/4B_skewness_treatment.py
+python src/preprocessing/4C_visualization_before_after.py
+python src/preprocessing/4D_feature_scaling.py
+python src/preprocessing/4E_feature_selection.py
+```
+
+### Renditja e varësive
+Çdo skript varet nga output-i i mëparshëm. Prandaj rekomandohet ekzekutimi në rend strikt.
+
+---
+
+## Rezultati final i pipeline-it
+
+Produkti final i këtij projekti është:
+
+- një dataset i integruar, i pastër dhe i validuar,
+- një dataset i pasuruar me tipare domethënëse kohore dhe meteorologjike,
+- një version i trajtuar për outlier-a dhe skewness,
+- një version i standardizuar,
+- dhe në fund një subset final tiparesh me multikolinearitet të reduktuar.
+
+Dataset-i final:
+- `data/4E_selected_dataset.csv`
+
+është forma më e përshtatshme për:
+- modelim prediktiv të `PM2.5`,
+- regresion,
+- krahasim modelesh machine learning,
+- analiza statistikore të marrëdhënieve mes energjisë, motit dhe ndotjes.
+
+---
+
+## Zgjerime në vazhdim
+
+Në vazhdim, ky projekt mund të zgjerohet me:
+
+- modele decision trees për parashikimin e `PM2.5`,
+- krahasim modelesh si Random Forest, XGBoost,
+- validim temporal `train/validation/test split` sipas kohës,
+- analizë më të avancuar të rëndësisë së tipareve,
+- krahasim të performancës para dhe pas feature selection.
+
+---
+
+## Anëtarët e grupit
+
+
+- **Diellza Përvetica**
+- **Fatjeta Gashi**
+- **Festina Klinaku**
+
+---
+
+## Acknowledgments
+
+- Universiteti i Prishtinës
+- Fakulteti i Inxhinierisë Elektrike dhe Kompjuterike
+- Dr. Sc. Mërgim H. Hoti
+- Burimet publike dhe institucionale të përdorura për ndërtimin e dataset-eve hyrëse
+- Të gjithë anëtarët e grupit që kontribuan në ndërtimin e pipeline-it
 
