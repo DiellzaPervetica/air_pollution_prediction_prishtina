@@ -8,10 +8,10 @@ INPUT = BASE_DIR / "data" / "3C_scaled_dataset.csv"
 OUTPUT = BASE_DIR / "data" / "3D_selected_dataset.csv"
 
 TARGET = "pm25"
-MIN_CORRELATION = 0.05
-VIF_THRESHOLD = 5.0
 KEEP_COLS = ["datetime", "date"]
 
+POLLUTANTS_TO_DROP = ["co", "no2", "o3", "pm10", "so2"]
+STRUCTURAL_TO_DROP = ["A3_MW", "A4_MW", "A5_MW", "B1_MW", "B2_MW", "hour", "month", "day_of_week"]
 
 def calculate_vif(df_numeric):
     vif_data = pd.DataFrame()
@@ -22,36 +22,48 @@ def calculate_vif(df_numeric):
     ]
     return vif_data.sort_values("VIF", ascending=False)
 
-
 df = pd.read_csv(INPUT)
 
 df_datetime = df[KEEP_COLS].copy()
 df_numeric = df.drop(columns=KEEP_COLS)
 
-correlations = df_numeric.corr()[TARGET].drop(TARGET).abs()
-selected_by_corr = correlations[correlations >= MIN_CORRELATION].index.tolist()
+cols_to_drop = [c for c in df_numeric.columns if "lag" in c.lower()]
+cols_to_drop += [c for c in df_numeric.columns if "pm25" in c and c != TARGET]
+cols_to_drop += [c for c in POLLUTANTS_TO_DROP + STRUCTURAL_TO_DROP if c in df_numeric.columns]
 
-df_for_vif = df_numeric[selected_by_corr].copy()
+df_numeric = df_numeric.drop(columns=list(set(cols_to_drop)))
 
-try:
-    vif_results = calculate_vif(df_for_vif)
-    features_with_acceptable_vif = vif_results[vif_results["VIF"] <= VIF_THRESHOLD][
-        "Feature"
-    ].tolist()
-except Exception:
-    features_with_acceptable_vif = selected_by_corr
+VIF_THRESHOLD = 7.0
+X = df_numeric.drop(columns=[TARGET])
 
-final_features = features_with_acceptable_vif + [TARGET]
+while True:
+    vif_results = calculate_vif(X)
+    max_vif = vif_results.iloc[0]["VIF"]
+    if max_vif > VIF_THRESHOLD:
+        feature_to_drop = vif_results.iloc[0]["Feature"]
+        X = X.drop(columns=[feature_to_drop])
+    else:
+        break
+
+final_features = X.columns.tolist() + [TARGET]
 df_selected = df_numeric[final_features].copy()
 df_final = pd.concat([df_datetime, df_selected], axis=1)
 
 df_final.to_csv(OUTPUT, index=False)
 
-print("FEATURE SELECTION REPORT - PM2.5 PREDICTION\n")
+correlations = df_numeric.corr(numeric_only=True)[TARGET].drop(TARGET).abs()
+correlations = correlations.sort_values(ascending=False)
+
+print("\n" + "=" * 70)
+print("RAPORTI FINAL I ZGJEDHJES SË TIPAREVE")
+print("=" * 70)
 print(f"Dataset fillestar: {df.shape}")
-print(f"Dataset përfundimtar: {df_final.shape}\n")
-print("FEATURES TË ZGJEDHURA:")
-for feat in final_features[:-1]:
-    corr_val = correlations[feat]
-    print(f"  [SELECTED] {feat:30s} | Korrelacion: {corr_val:7.4f}")
-print(f"\nTarget variable: {TARGET}")
+print(f"Dataset përfundimtar: {df_final.shape}")
+print(f"Numri i tipareve finale: {len(final_features) - 1}\n")
+
+print("TIPARET E ZGJEDHURA (të renditura sipas korrelacionit):\n")
+for feat in correlations.index:
+    if feat in final_features:
+        print(f"  [SELECTED] {feat:40s} | Korrelacion: {correlations[feat]:7.4f}")
+
+print("\n" + "-" * 70)
