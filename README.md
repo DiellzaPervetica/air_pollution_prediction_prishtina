@@ -254,9 +254,9 @@ Karakteristikat e dataset-it:
 - Numri total i vlerave: **158,067**
 - Intervali kohor: **2023-08-01 → 2026-03-03**
 ---
-
-### Struktura e repository-t
 ```text
+### Struktura e repository-t
+
 AIR_POLLUTION_PREDICTION_PRISHTINA/
 │
 ├── app.py                       # Vizualizimi i tërë projektit
