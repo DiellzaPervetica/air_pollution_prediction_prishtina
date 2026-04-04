@@ -1294,9 +1294,7 @@ Dataset-i final:
 - regresion,
 - krahasim modelesh machine learning,
 - analiza statistikore të marrëdhënieve mes energjisë, motit dhe ndotjes.
----
-
-````md
+  
 ---
 
 ## 02 Modelimi dhe analiza
@@ -1929,7 +1927,7 @@ Kjo do të thotë se pipeline-i i ndërtuar në këtë projekt tashmë përbën 
 
 ---
 
-```
+
 ---
 
 ## Zgjerime në vazhdim
