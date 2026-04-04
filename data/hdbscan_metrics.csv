@@ -1,2 +1,2 @@
 rows_used,n_features,n_clusters_excluding_noise,n_noise_points,n_non_noise_points,noise_ratio,avg_cluster_persistence,silhouette_score,davies_bouldin_score,calinski_harabasz_score,min_cluster_size,min_samples,cluster_selection_method,metric
-9347,14,2,6874,2473,0.7354231304161764,0.03225115984931105,0.26582079730470576,1.2784860682339403,266.1119786009651,80,20,eom,euclidean
+9347,14,2,6874,2473,0.7354231304161764,0.032251159849310866,0.26582079730470576,1.2784860682339403,266.1119786009651,80,20,eom,euclidean
