@@ -58,39 +58,43 @@
 5. [Zgjerime në vazhdim](#zgjerime-në-vazhdim)
 6. [Anëtarët e grupit](#anëtarët-e-grupit)
 7. [Acknowledgments](#acknowledgments)
+
 ---
+
 ## Përmbajtja
+
 1. Përmbledhje e projektit
 2. Qëllimi i punimit
 3. 01 Përgatitja e modelit
-   * Burimet e të dhënave
-   * Përshkrimi i dataset-eve hyrëse
-   * Struktura e repository-t
-   * Topologjia e pipeline-it
-   * Përshkrimi i detajuar i çdo skripte
-     * Data collection
-     * Integration
-     * Distinct values
-     * Data cleaning
-     * Feature engineering
-     * Preprocessing
-   * Artefaktet dhe output-et e krijuara
-   * Vizualizimet e gjeneruara
-   * Teknikat e zbatuara dhe lidhja me lëndën
-   * Ekzekutimi i projektit
-   * Rezultati final i pipeline-it
+   - Burimet e të dhënave
+   - Përshkrimi i dataset-eve hyrëse
+   - Struktura e repository-t
+   - Topologjia e pipeline-it
+   - Përshkrimi i detajuar i çdo skripte
+     - Data collection
+     - Integration
+     - Distinct values
+     - Data cleaning
+     - Feature engineering
+     - Preprocessing
+   - Artefaktet dhe output-et e krijuara
+   - Vizualizimet e gjeneruara
+   - Teknikat e zbatuara dhe lidhja me lëndën
+   - Ekzekutimi i projektit
+   - Rezultati final i pipeline-it
 4. 02 Modelimi dhe analiza
-   * Qasja e përgjithshme
-   * CatBoost për parashikimin e PM2.5
-   * LightGBM për parashikimin e PM2.5
-   * HDBSCAN për analizë unsupervised
-   * Validimi korrekt pa leakage
-   * Metrikat dhe interpretimi i rezultateve
-   * Artefaktet e krijuara nga modelet
-   * Vizualizimet interaktive
+   - Qasja e përgjithshme
+   - CatBoost për parashikimin e PM2.5
+   - LightGBM për parashikimin e PM2.5
+   - HDBSCAN për analizë unsupervised
+   - Validimi korrekt pa leakage
+   - Metrikat dhe interpretimi i rezultateve
+   - Artefaktet e krijuara nga modelet
+   - Vizualizimet interaktive
 5. Zgjerime në vazhdim
 6. Anëtarët e grupit
 7. Acknowledgments
+
 ---
 
 ## Përmbledhje e projektit
@@ -104,6 +108,7 @@ Pipeline-i ndërtohet mbi integrimin e tre burimeve të ndryshme të të dhënav
 3. të dhënat për ndotjen e ajrit në Prishtinë.
 
 Më pas, këto burime:
+
 - harmonizohen në nivel kohor orë-pas-ore,
 - pastrohen,
 - validohen,
@@ -150,7 +155,9 @@ Objektivat kryesore janë:
 Ky projekt bazohet në tre burime kryesore të të dhënave:
 
 #### 1. Prodhimi i energjisë elektrike nga termocentralet e Kosovës
+
 Dataset-i përmban prodhimin orar të njësive energjetike:
+
 - `A3_MW`
 - `A4_MW`
 - `A5_MW`
@@ -158,12 +165,15 @@ Dataset-i përmban prodhimin orar të njësive energjetike:
 - `B2_MW`
 
 Nga këto është ndërtuar edhe:
+
 - `total_generation_mw`
 
 Të dhënat janë marrë nga KOSTT dhe janë harmonizuar në nivel orar.
 
 #### 2. Të dhënat meteorologjike për Prishtinën
+
 Dataset-i meteorologjik përmban atribute si:
+
 - temperatura,
 - reshjet,
 - bora,
@@ -174,7 +184,9 @@ Dataset-i meteorologjik përmban atribute si:
 Këto të dhëna janë përdorur për të modeluar kushtet atmosferike që ndikojnë në përhapjen ose stagnimin e ndotjes. Të dhënat janë marrë nga OpenMeteo.
 
 #### 3. Të dhënat e ndotjes së ajrit në Prishtinë
+
 Dataset-i i cilësisë së ajrit përmban matje të ndotësve:
+
 - `co`
 - `no2`
 - `o3`
@@ -185,6 +197,7 @@ Dataset-i i cilësisë së ajrit përmban matje të ndotësve:
 Këto të dhëna janë mbledhur dhe konsoliduar për Prishtinën përmes burimeve të tipit OpenAQ / arkivave përkatëse / notebook-ut të kolektimit të përdorur në projekt.
 
 #### Shtrirja kohore
+
 Burimet hyrëse mbulojnë periudhën 2023–2026. Megjithatë, dataset-i i integruar final ruan vetëm intervalin ku të tre burimet kanë mbulim të përbashkët orar, prandaj output-i i parë i integruar ruhet si:
 
 - `1A_merged_data_hourly_2023_2025.csv`
@@ -201,6 +214,7 @@ Pas bashkimit (`merge`) të tre burimeve me `inner join`, dataset-i final përmb
 - Intervali kohor: **2023-08-01 → 2025-11-27**
 
 - Reduktimi i numrit të rreshtave është rezultat i sinkronizimit strikt kohor ndërmjet burimeve, ku ruhen vetëm momentet për të cilat ekzistojnë të dhëna në të tre dataset-et.
+
 ---
 
 ### Përshkrimi i dataset-eve hyrëse
@@ -212,7 +226,9 @@ Pipeline-i përdor tre skedarë bruto të ruajtur në `data/raw/`:
 - `prishtina_energy_production_2023_2026.csv`
 
 #### Dataset-i i ndotjes së ajrit
+
 Përmban kolonën `datetime` dhe ndotësit kryesorë atmosferikë:
+
 - `co`
 - `no2`
 - `o3`
@@ -221,13 +237,16 @@ Përmban kolonën `datetime` dhe ndotësit kryesorë atmosferikë:
 - `so2`
 
 Karakteristikat e dataset-it:
+
 - Numri i rreshtave: **10,147**
 - Numri i kolonave: **7**
 - Numri total i vlerave: **71,029**
 - Intervali kohor: **2023-03-14 → 2025-11-27**
 
 #### Dataset-i meteorologjik
+
 Përmban kolonën kohore dhe atributet:
+
 - `temperature_2m (°C)`
 - `rain (mm)`
 - `snowfall (cm)`
@@ -236,13 +255,16 @@ Përmban kolonën kohore dhe atributet:
 - `wind_speed_10m (km/h)`
 
 Karakteristikat e dataset-it:
+
 - Numri i rreshtave: **27,813**
 - Numri i kolonave: **7**
 - Numri total i vlerave: **194,691**
 - Intervali kohor: **2023-01-01 → 2026-03-05**
 
 #### Dataset-i i energjisë
+
 Përmban:
+
 - kolonën e datës,
 - kolonën e orës,
 - prodhimin për secilën njësi termocentrali,
@@ -251,13 +273,16 @@ Përmban:
 Gjatë leximit, ky dataset kërkon pastrim shtesë të header-it, sepse struktura e tij fillestare nuk është menjëherë tabulare në formën standarde CSV.
 
 Karakteristikat e dataset-it:
+
 - Numri i rreshtave: **22,581**
 - Numri i kolonave: **7**
 - Numri total i vlerave: **158,067**
 - Intervali kohor: **2023-08-01 → 2026-03-03**
+
 ---
 
 ### Struktura e repository-t
+
 ```text
 AIR_POLLUTION_PREDICTION_PRISHTINA/
 │
@@ -334,6 +359,7 @@ AIR_POLLUTION_PREDICTION_PRISHTINA/
 └── .gitignore
 
 ```
+
 ---
 
 ### Topologjia e pipeline-it
@@ -389,23 +415,27 @@ Rrjedha logjike është kjo:
 
 <img width="1403" height="614" alt="image" src="https://github.com/user-attachments/assets/72f790b1-7253-4fe9-ab3d-f89834b609e3" />
 
-
 ### Data collection
 
 #### `get_kosova_air_quality_data.ps1`
+
 Ky skript PowerShell përdoret për shkarkimin e të dhënave arkivore nga OpenAQ për disa `location IDs` të lidhura me Prishtinën ose pikat përkatëse të matjes.
 
 ##### Çfarë bën skripta
+
 - krijon folder-in bazë të ruajtjes në disk,
 - iteron mbi një listë `location IDs`,
 - për secilin lokacion përdor komandën `aws s3 cp` për të shkarkuar skedarët `.csv.gz` nga arkiva publike e OpenAQ,
 - ruan të dhënat në nënfolderë të ndarë sipas `location ID`.
 
 ##### Qëllimi
+
 Ky hap siguron mbledhjen e të dhënave bruto të ndotjes / matjeve për përpunim të mëtejshëm.
 
 ##### Lokacionet e përdorura
+
 Në versionin aktual përdoren:
+
 - `2536`
 - `7674`
 - `7931`
@@ -413,14 +443,17 @@ Në versionin aktual përdoren:
 - `9337`
 
 ##### Output
+
 Skedarët bruto ruhen lokalisht në strukturë të ndarë sipas lokacionit.
 
 ---
 
 #### `get_prishtina_air_quality_data.ipynb`
+
 Ky notebook shërben si mjedis interaktiv për mbledhje, eksplorim, filtrime dhe/ose konsolidim të të dhënave të cilësisë së ajrit për Prishtinën.
 
 Meqë logjika e plotë e notebook-ut nuk është përfshirë këtu në README, roli i tij në projekt është:
+
 - të ndihmojë në eksplorimin fillestar të të dhënave,
 - të përgatisë ose eksportojë skedarët bruto/finalë të përdorur më pas në pipeline,
 - të shërbejë si hap ndërmjetës midis burimeve online dhe CSV-ve në `data/raw/`.
@@ -430,14 +463,17 @@ Meqë logjika e plotë e notebook-ut nuk është përfshirë këtu në README, r
 ### Integration
 
 #### `1A_merge_data.py`
+
 Ky është hapi themelor i integrimit të të tre burimeve.
 
 ##### Input
+
 - `data/raw/prishtina_air_quality_2023_2025.csv`
 - `data/raw/prishtina_weather_2023_2026.csv`
 - `data/raw/prishtina_energy_production_2023_2026.csv`
 
 ##### Hapat kryesorë
+
 1. Lexon dataset-in e ndotjes së ajrit.
 2. Lexon dataset-in meteorologjik, duke anashkaluar rreshtat hyrës jo-standardë.
 3. Lexon dataset-in e energjisë pa header standard dhe e zbulon automatikisht rreshtin e header-it.
@@ -456,16 +492,17 @@ Ky është hapi themelor i integrimit të të tre burimeve.
 <img width="369" height="137" alt="{AAE917B3-90A4-4AEF-972B-944317A01B36}" src="https://github.com/user-attachments/assets/7b1a9d31-108a-4b06-ae95-51c1ed11c883" />
 
 6. Konverton kolonat kohore në `datetime`.
-8. Harmonizon timezone-in e ndotjes dhe motit në `Europe/Belgrade`, pastaj i kthen në naive timestamps.
+7. Harmonizon timezone-in e ndotjes dhe motit në `Europe/Belgrade`, pastaj i kthen në naive timestamps.
 
 <img width="575" height="221" alt="{F4E9923A-69C5-4D33-80AC-C79D01092939}" src="https://github.com/user-attachments/assets/52283448-fda9-4aa2-947c-2261663d4255" />
 
 10. Pastron duplikatet sipas `datetime`.
 11. Për dataset-in e energjisë:
-   - konverton `date`,
-   - konverton `hour`,
-   - krijon `datetime`,
-   - llogarit `total_generation_mw`.
+
+- konverton `date`,
+- konverton `hour`,
+- krijon `datetime`,
+- llogarit `total_generation_mw`.
 
 <img width="592" height="81" alt="image" src="https://github.com/user-attachments/assets/8e114cc1-a1fa-4fbd-9461-357d0e7721be" />
 
@@ -476,13 +513,11 @@ Ky është hapi themelor i integrimit të të tre burimeve.
 13. Kryen dy merge-e me `how="inner"`:
     - ndotja + moti,
     - pastaj rezultati + energjia.
-14. Krijon kolonat:
-    - `date`
-    - `hour`
-    - `interval_start`
-<img width="431" height="94" alt="{AA095FE6-7145-4932-98A4-BCCD0F0B1ACA}" src="https://github.com/user-attachments/assets/9cac6b45-b4fd-47a2-b479-650faa2d1d9f" />
+14. Krijon kolonat: - `date` - `hour` - `interval_start`
+    <img width="431" height="94" alt="{AA095FE6-7145-4932-98A4-BCCD0F0B1ACA}" src="https://github.com/user-attachments/assets/9cac6b45-b4fd-47a2-b479-650faa2d1d9f" />
 
 ##### Output
+
 - `data/1A_merged_data_hourly_2023_2025.csv`
 
 <img width="542" height="133" alt="image" src="https://github.com/user-attachments/assets/4718329f-b2cc-4645-948e-5eace36d9ec4" />
@@ -490,6 +525,7 @@ Ky është hapi themelor i integrimit të të tre burimeve.
 <img width="473" height="373" alt="{E2F813E0-8D5D-442E-B540-48CA917DFA39}" src="https://github.com/user-attachments/assets/a7af8314-e52b-465e-8099-6a97b644b2bf" />
 
 ##### Roli në pipeline
+
 Ky skript krijon dataset-in e parë të integruar orar, që shërben si bazë për të gjitha hapat pasues.
 
 ---
@@ -497,12 +533,15 @@ Ky skript krijon dataset-in e parë të integruar orar, që shërben si bazë p�
 ### Distinct values
 
 #### `1B_distinct_values.py`
+
 Ky skript bën profilizimin e vlerave unike për një grup kolonash kryesore.
 
 ##### Input
+
 - `data/1A_merged_data_hourly_2023_2025.csv`
 
 ##### Kolonat e përfshira
+
 - ndotësit: `co`, `no2`, `o3`, `pm10`, `pm25`, `so2`
 - atributet meteorologjike:
   - temperatura
@@ -519,8 +558,8 @@ Ky skript bën profilizimin e vlerave unike për një grup kolonash kryesore.
   - `B2_MW`
   - `total_generation_mw`
 
-
 ##### Çfarë bën
+
 - lexon dataset-in e integruar,
 
 <img width="428" height="126" alt="{85DD1928-3765-4E4A-B0D3-D437772217AC}" src="https://github.com/user-attachments/assets/012286f2-7b62-4f35-90db-f70fb9c366c6" />
@@ -531,9 +570,10 @@ Ky skript bën profilizimin e vlerave unike për një grup kolonash kryesore.
 
 <img width="523" height="140" alt="{1410133E-14B9-47EE-8AA0-816CBF5B5718}" src="https://github.com/user-attachments/assets/a5667111-5910-4add-9ea8-036b7ce44bf7" />
 
-
 ##### Output
+
 Folderi `1B_distinct_values/` përmban një skedar të veçantë për secilin atribut, p.sh.:
+
 - `distinct_co.csv`
 - `distinct_no2.csv`
 - `distinct_o3.csv`
@@ -552,8 +592,8 @@ Pamje nga skedaret unik:
 
 <img width="216" height="289" alt="{DBB27AF7-8935-4189-90AB-624587087BFA}" src="https://github.com/user-attachments/assets/32f47cab-4898-4f79-9eab-887c81351c11" />
 
-
 ##### Roli ne pipeline
+
 Ky hap mbështet eksplorimin fillestar të shpërndarjeve dhe kontrollin e domenit të vlerave.
 
 ---
@@ -561,12 +601,15 @@ Ky hap mbështet eksplorimin fillestar të shpërndarjeve dhe kontrollin e domen
 ### Data cleaning
 
 #### `2A_datetime_and_duplicates.py`
+
 Ky skript kryen pastrimin fillestar të dimensionit kohor dhe duplikateve.
 
 ##### Input
+
 - `data/1A_merged_data_hourly_2023_2025.csv`
 
 ##### Çarë bën
+
 - konverton `datetime` në format korrekt,
 - heq rreshtat ku `datetime` është invalid,
 - rendit dataset-in sipas kohës,
@@ -578,22 +621,26 @@ Ky skript kryen pastrimin fillestar të dimensionit kohor dhe duplikateve.
 
 <img width="308" height="93" alt="{1DBC8645-552B-4E2F-A0CB-606E6BD3F65A}" src="https://github.com/user-attachments/assets/50220b1f-63cd-4f8e-a1ef-962ad42637eb" />
 
-
 ##### Output
+
 - `data/2A_cleaned_no_duplicates.csv`
 
 ##### Roli ne pipeline
+
 Siguron që dataset-i i integruar të ketë rend kronologjik korrekt dhe të mos ketë rreshta të përsëritur.
 
 ---
 
 #### `2B_data_quality_cleaning.py`
+
 Ky skript zbaton rregulla të cilësisë së të dhënave.
 
 ##### Input
+
 - `data/2A_cleaned_no_duplicates.csv`
 
 ##### Cfarë bën
+
 1. Për ndotësit:
    - zëvendëson vlerat negative me `NaN`, sepse fizikisht nuk kanë kuptim.
 
@@ -629,27 +676,32 @@ Ky skript zbaton rregulla të cilësisë së të dhënave.
 
 <img width="424" height="79" alt="{3661720A-987A-41F9-9DD0-CF8A14E2B71F}" src="https://github.com/user-attachments/assets/bb783372-bf4d-4ca5-8513-540fa23d363c" />
 
-
 ##### Output
+
 - `data/2B_quality_checked.csv`
 
 ##### Roli në pipeline
+
 Ky hap vendos validim fizik dhe konsistencë numerike mbi të dhënat.
 
 ---
 
 #### `2C_missing_values_handling.py`
+
 Ky skript trajton vlerat mungesë.
 
 ##### Input
+
 - `data/2B_quality_checked.csv`
 
 ##### Strategjia e trajtimit
+
 - `pm10` dhe `pm25`: plotësohen me `backfill`
 - `co`, `no2`, `o3`, `so2`: plotësohen me `forward fill`
 - në fund aplikohet kombinimi `ffill().bfill()` për gjithë dataset-in
 
 ##### Çfarë bën
+
 - llogarit mungesat për kolonë dhe përqindjen e tyre,
 
 <img width="486" height="55" alt="{01A3889B-10DA-4CF6-B7CB-E035F8E86192}" src="https://github.com/user-attachments/assets/928a6ed8-7b39-4275-a0f9-2e7ab8a9ee39" />
@@ -668,30 +720,33 @@ Ky skript trajton vlerat mungesë.
 
 <img width="303" height="40" alt="{73B7F4D2-33C2-4F4A-A6D8-15DA761D7F8F}" src="https://github.com/user-attachments/assets/b9de8d37-492e-48c5-b67d-1d8a163e05f0" />
 
-
 ##### Output
+
 - `data/2C_missing_values_handled.csv`
 
 ##### Roli në pipeline
+
 Ky hap shmang humbjen e rreshtave dhe prodhon një dataset të plotë për analizat pasuese.
 
 ---
 
 #### `2D_validate_final_dataset.py`
+
 Ky skript bën validimin final të dataset-it pas trajtimit të mungesave.
 
 ##### Input
+
 - `data/2C_missing_values_handled.csv`
 
 ##### Çfarë bën
+
 1. Kontrollon raportin fizik ndërmjet:
    - `pm25`
    - `pm10`
-   
+
    dhe korrigjon rastet kur `pm25 > pm10` duke vendosur `pm25 = pm10`.
 
 <img width="" height="110" alt="image" src="https://github.com/user-attachments/assets/4f5c7fa0-b2b9-4571-916d-129fafd8d098" />
-
 
 3. Kontrollon gaps kohore:
    - konverton `datetime`,
@@ -700,18 +755,18 @@ Ky skript bën validimin final të dataset-it pas trajtimit të mungesave.
 
 <img width="366" height="181" alt="image" src="https://github.com/user-attachments/assets/06b9f87f-0840-4ed7-a164-e96a28f134a7" />
 
-
 3. Kontrollon nëse kanë mbetur `NULL`.
 
 <img width="366" height="141" alt="{F77E8282-105B-45A2-ADFE-DB03A3297653}" src="https://github.com/user-attachments/assets/8b5ce324-d735-43f6-814e-692895bf63d5" />
 
-
 ##### Output
+
 - `data/2D_validated_final_dataset.csv`
 
 <img width="925" height="379" alt="{6F19998C-61F9-47E1-9FA8-C1FC8054795B}" src="https://github.com/user-attachments/assets/8bfc891e-b0cc-4c97-b800-451f3fde22b4" />
 
 ##### Roli në pipeline
+
 Ky është dataset-i final i pastruar dhe validuar, mbi të cilin kryhen analiza dhe inxhinierim tiparesh.
 
 ---
@@ -719,12 +774,15 @@ Ky është dataset-i final i pastruar dhe validuar, mbi të cilin kryhen analiza
 ### Feature engineering
 
 #### `3A_target_analysis.py`
+
 Ky skript kryen analizën fillestare të target-it dhe marrëdhënieve të tij me tiparet shpjeguese.
 
 ##### Input
+
 - `data/2D_validated_final_dataset.csv`
 
 ##### Çfarë bën
+
 1. Gjeneron statistika përmbledhëse për ndotësit:
    - `co`
    - `no2`
@@ -735,7 +793,6 @@ Ky skript kryen analizën fillestare të target-it dhe marrëdhënieve të tij m
 
 <img width="" height="60" alt="image" src="https://github.com/user-attachments/assets/1487f6c8-0454-49a3-8a8d-17ede5f5cd2c" />
 
-
 2. Formon një subset me:
    - ndotësit,
    - kolonat e energjisë,
@@ -745,32 +802,37 @@ Ky skript kryen analizën fillestare të target-it dhe marrëdhënieve të tij m
 
   <img width="508" height="111" alt="{38275DD5-5A2E-4CFF-91C0-5C666AFF3DFE}" src="https://github.com/user-attachments/assets/86d203a6-4fcc-454a-8efe-d5aeaa473b77" />
 
-
 5. Krijon dy heatmap-a:
    - korrelacioni i ndotësve me energjinë dhe motin,
    - korrelacioni mes vetë ndotësve.
 
 ##### Output
+
 - `pictures/pollutant_vs_predictors_heatmap.png`
 - `pictures/pollutant_correlation_heatmap.png`
 
 ##### Roli në pipeline
+
 Ky hap ndihmon në identifikimin e lidhjeve lineare fillestare dhe në justifikimin e tipareve të përdorura më pas në feature engineering.
 
 ---
 
 #### `3B_feature_engineering.py`
+
 Ky skript ndërton dataset-in e pasuruar me tipare të reja.
 
 ##### Input
+
 - `data/2D_validated_final_dataset.csv`
 
 ##### Target
+
 - `pm25`
 
 ##### Çfarë bën
 
 ###### 1. Përgatitje kohore
+
 - konverton `datetime`,
 - rendit dataset-in kronologjikisht,
 - nxjerr:
@@ -781,7 +843,9 @@ Ky skript ndërton dataset-in e pasuruar me tipare të reja.
 <img width="507" height="93" alt="{9D5E10B1-7451-40A8-BA92-01DE19B074E0}" src="https://github.com/user-attachments/assets/382465fc-9cae-4af7-925a-1ff1dc0ae6a1" />
 
 ###### 2. Encodim ciklik
+
 Krijon:
+
 - `hour_sin`
 - `hour_cos`
 - `month_sin`
@@ -792,12 +856,15 @@ Krijon:
 Qëllimi është të përfaqësojë natyrën ciklike të orës dhe muajit.
 
 ###### 3. Lag features
+
 Për kolonat:
+
 - `total_generation_mw`
 - `wind_speed_10m (km/h)`
 - `temperature_2m (°C)`
 
 krijohen lag-e:
+
 - `lag_1h`
 - `lag_3h`
 - `lag_6h`
@@ -805,21 +872,27 @@ krijohen lag-e:
 <img width="611" height="128" alt="{0129CD0F-43C3-46C7-857F-CC79A2E4E235}" src="https://github.com/user-attachments/assets/7f5885ea-3b9b-41b0-a1f2-24b55c428940" />
 
 ###### 4. Rolling features
+
 Krijohen:
+
 - `total_gen_rolling_sum_12h`
 - `total_gen_rolling_sum_24h`
 
 <img width="604" height="34" alt="{84F7C7EB-928A-4284-92DF-77244C86351B}" src="https://github.com/user-attachments/assets/8cd91bcd-5ad6-4c38-b1e7-a03d92793557" />
 
 ###### 5. Interaction features
+
 Krijohen:
+
 - `temp_wind_interact`
 - `generation_humidity_interact`
 
 <img width="595" height="41" alt="{CB1FE4F3-C35F-4AB7-8E84-B5113E104D46}" src="https://github.com/user-attachments/assets/161bea77-ad84-4b1c-a731-d92b75a50321" />
 
 ###### 6. Stagnation proxy
+
 Krijohet:
+
 - `pollution_stagnation_index = total_generation_mw / (wind_speed + 0.1)`
 
 Ky indikator përpiqet të përfaqësojë situatat kur ka prodhim të lartë dhe erë të ulët, pra kushte më të favorshme për grumbullim ndotjesh.
@@ -827,22 +900,26 @@ Ky indikator përpiqet të përfaqësojë situatat kur ka prodhim të lartë dhe
 <img width="593" height="31" alt="{7736A968-7617-4B05-AB85-04C693E45840}" src="https://github.com/user-attachments/assets/0b615ce4-1d7f-4258-bfb9-1d04e49561ac" />
 
 ###### 7. Wind vector decomposition
+
 Nga shpejtësia dhe drejtimi i erës krijohen:
+
 - `wind_x_vector`
 - `wind_y_vector`
 
 <img width="322" height="69" alt="{9EE0FD41-466C-406C-A328-75084CFF86E6}" src="https://github.com/user-attachments/assets/69a803b2-5af1-4a22-beb9-808ec06a6aeb" />
 
 ###### 8. Heqja e rreshtave me `NaN`
+
 Pas krijimit të lag-eve dhe rolling windows hiqen rreshtat fillestarë që mbeten pa vlera të plota.
 
 <img width="252" height="34" alt="{9214D524-77A2-425F-88FE-1406798AAE8D}" src="https://github.com/user-attachments/assets/367b4a97-7563-4864-ab33-e71c1d7bd6ea" />
 
-
 ##### Output
+
 - `data/3B_engineered_dataset.csv`
 
 ##### Roli në pipeline
+
 Ky është dataset-i i parë i pasuruar me tipare që modelojnë dinamikat kohore, ndikimet meteorologjike dhe ndërveprimet me prodhimin e energjisë.
 
 ---
@@ -850,19 +927,24 @@ Ky është dataset-i i parë i pasuruar me tipare që modelojnë dinamikat kohor
 ### Preprocessing
 
 #### `4A_outlier_treatment.py`
+
 Ky skript trajton outlier-at me quantile capping.
 
 ##### Input
+
 - `data/3B_engineered_dataset.csv`
 
 ##### Strategjia
+
 Për secilën kolonë numerike kandidate:
+
 - kufiri i poshtëm = quantile `0.1%`
 - kufiri i sipërm = quantile `99%`
 
 Vlerat jashtë këtij intervali nuk fshihen, por priten në kufijtë përkatës.
 
 ##### Kolonat e përjashtuara
+
 - `datetime`
 - `date`
 - disa tipare ciklike dhe vektorë strukturorë si:
@@ -874,6 +956,7 @@ Vlerat jashtë këtij intervali nuk fshihen, por priten në kufijtë përkatës.
   - `wind_y_vector`
 
 ##### Çfarë bën
+
 - identifikon kolonat numerike kandidate,
 
 <img width="" height="100" alt="image" src="https://github.com/user-attachments/assets/1277d0ad-20f8-4edd-aa83-7c3518c640b5" />
@@ -891,31 +974,39 @@ Vlerat jashtë këtij intervali nuk fshihen, por priten në kufijtë përkatës.
 <img width="304" height="92" alt="{5C06F89A-7C0E-4C98-B3D6-7EB360549105}" src="https://github.com/user-attachments/assets/f774921a-69c9-493e-bb9d-55b0fe23b267" />
 
 ##### Output
+
 - `data/4A_outliers_handled.csv`
 
 ##### Roli në pipeline
+
 Ky hap redukton ndikimin e vlerave ekstreme pa humbur rreshta.
 
 ---
 
 #### `4B_skewness_treatment.py`
+
 Ky skript trajton shtrembërimin e shpërndarjes së kolonave numerike.
 
 ##### Input
+
 - `data/4A_outliers_handled.csv`
 
 ##### Strategjia
+
 Për secilën kolonë numerike:
+
 - llogaritet skewness,
 - nëse `|skew| > 1.0`, zbatohet transformim.
 
 ##### Llojet e transformimit
+
 - nëse kolona ka vetëm vlera jo-negative:
   - përdoret `log1p`
 - ndryshe:
   - përdoret `PowerTransformer(method="yeo-johnson")`
 
 ##### Çfarë bën
+
 - krahason skewness para dhe pas transformimit,
 
 <img width="293" height="140" alt="{ACF2D39A-7132-44DE-94FD-02FBADE7EFE2}" src="https://github.com/user-attachments/assets/52ef2624-8f11-497a-a0c8-219132acfe5e" />
@@ -928,26 +1019,30 @@ Për secilën kolonë numerike:
 
 <img width="" height="86" alt="{27116D5F-1372-4BBB-8835-D8036D487641}" src="https://github.com/user-attachments/assets/33186496-a0f3-45a0-a447-d9ac72219563" />
 
-
 ##### Output
+
 - `data/4B_skewness_handled.csv`
 
 <img width="520" height="328" alt="image" src="https://github.com/user-attachments/assets/cf173685-fe02-43a0-b660-4421f45afdb7" />
 
 ##### Roli në pipeline
+
 Ky hap i bën shpërndarjet më të përshtatshme për standardizim, analiza lineare dhe modele machine learning.
 
 ---
 
 #### `4C_visualization_before_after.py`
+
 Ky skript gjeneron histogramat krahasuese para dhe pas trajtimit të outlier-ave dhe skewness.
 
 ##### Input
+
 - `data/3B_engineered_dataset.csv`
 - `data/4A_outliers_handled.csv`
 - `data/4B_skewness_handled.csv`
 
 ##### Tiparet e vizualizuara
+
 - `pm25`
 - `total_generation_mw`
 - `pollution_stagnation_index`
@@ -955,49 +1050,62 @@ Ky skript gjeneron histogramat krahasuese para dhe pas trajtimit të outlier-ave
 - `temp_wind_interact`
 
 ##### Çfarë bën
+
 Për secilin atribut:
+
 - vizaton tre histogramë në të njëjtën figurë:
   - para trajtimit,
   - pas trajtimit të outlier-ave,
   - pas trajtimit të skewness.
 
 ##### Output
+
 Folderi:
+
 - `pictures/4C_visualization_before_after/`
 
 me figurat:
 
 ##### PM2.5 Distribution Comparison
+
 ![PM2.5](pictures/4C_visualization_before_after/pm25_distribution_comparison.png)
 
 ##### Total Generation MW Distribution Comparison
+
 ![Total Generation](pictures/4C_visualization_before_after/total_generation_mw_distribution_comparison.png)
 
 ##### Pollution Stagnation Index Distribution Comparison
+
 ![Stagnation](pictures/4C_visualization_before_after/pollution_stagnation_index_distribution_comparison.png)
 
 ##### Rain (mm) Distribution Comparison
+
 ![Rain](pictures/4C_visualization_before_after/rain_mm_distribution_comparison.png)
 
 ##### Temperature-Wind Interaction Distribution Comparison
+
 ![Temp Wind](pictures/4C_visualization_before_after/temp_wind_interact_distribution_comparison.png)
 
 ##### Roli ne pipeline
+
 Ky hap dokumenton vizualisht efektin e transformimeve statistikore.
 
 ---
 
 #### `4D_feature_scaling.py`
+
 Ky skript standardizon të gjitha kolonat numerike.
 
 ##### Input
+
 - `data/4B_skewness_handled.csv`
 
 ##### Çfarë bën
+
 - ndan kolonat jo-numerike:
   - `datetime`
   - `date`
-<img width="245" height="40" alt="image" src="https://github.com/user-attachments/assets/3b8d43de-8615-4725-8c5f-c773c74ec3f4" />
+    <img width="245" height="40" alt="image" src="https://github.com/user-attachments/assets/3b8d43de-8615-4725-8c5f-c773c74ec3f4" />
 
 - standardizon të gjitha kolonat e tjera me `StandardScaler`,
 
@@ -1012,27 +1120,34 @@ Ky skript standardizon të gjitha kolonat numerike.
 <img width="239" height="73" alt="{90AB8B67-BC65-4DC9-BC92-374F23CB0AF9}" src="https://github.com/user-attachments/assets/1a0cae99-1434-486b-b814-794fc2c30c57" />
 
 ##### Output
+
 - `data/4D_scaled_dataset.csv`
 - `models/scaler.pkl`
 
 ##### Roli në pipeline
+
 Ky hap siguron që tiparet numerike të jenë në të njëjtën shkallë dhe gati për feature selection ose modelim.
 
 ---
 
 #### `4E_feature_selection.py`
+
 Ky skript kryen reduktimin final të tipareve.
 
 ##### Input
+
 - `data/4D_scaled_dataset.csv`
 
 ##### Target
+
 - `pm25`
 
 ##### Strategjia e seleksionimit
 
 ###### 1. Heqje manuale e kolonave jo të dëshiruara
+
 Hiqen:
+
 - ndotësit e tjerë si variabla hyrëse:
   - `co`
   - `no2`
@@ -1054,13 +1169,16 @@ Hiqen:
 <img width="600" height="170" alt="{EFCA4BD3-8CC8-415E-9549-24C0D552CEE1}" src="https://github.com/user-attachments/assets/4c08beec-c313-4a65-a8df-404cf0206fad" />
 
 ###### 2. Heqje e kolonave konstante ose pothuajse konstante
+
 - kolona me vetëm 1 vlerë unike
 - kolona me devijim standard pothuajse zero
 
 <img width="433" height="108" alt="{4008EF22-1994-45BF-999C-9B987BC2C534}" src="https://github.com/user-attachments/assets/ee46b9fb-c185-4479-baff-13c2531c6685" />
 
 ###### 3. VIF-based elimination
+
 Për kolonat e mbetura:
+
 - llogaritet `Variance Inflation Factor (VIF)`
 - hiqet iterativisht kolona me VIF më të lartë derisa:
   - VIF maksimal të jetë më i vogël ose i barabartë me `7.0`
@@ -1074,7 +1192,9 @@ Për kolonat e mbetura:
 </div>
 
 ###### 4. Raportim
+
 Në fund raportohet:
+
 - madhësia e dataset-it fillestar,
 - madhësia e dataset-it final,
 - numri i tipareve finale,
@@ -1083,11 +1203,13 @@ Në fund raportohet:
 <img width="506" height="151" alt="{7C2D8392-1353-40D2-937B-7035E866EA08}" src="https://github.com/user-attachments/assets/3e56b2a1-22dc-4f9f-843c-b03bd3c7eaee" />
 
 ##### Output
+
 - `data/4E_selected_dataset.csv`
 
 <img width="1091" height="703" alt="image" src="https://github.com/user-attachments/assets/66b3f216-ac68-45de-915e-7c55089049b7" />
 
 ##### Roli në pipeline
+
 Ky është dataset-i final i reduktuar, i përgatitur për modelim statistikor ose machine learning me target `pm25`.
 
 ---
@@ -1095,6 +1217,7 @@ Ky është dataset-i final i reduktuar, i përgatitur për modelim statistikor o
 ### Artefaktet dhe output-et e krijuara
 
 #### Dataset-et e ruajtura ne `data/`
+
 - `1A_merged_data_hourly_2023_2025.csv`  
   Dataset-i i parë i integruar orar.
 
@@ -1126,6 +1249,7 @@ Ky është dataset-i final i reduktuar, i përgatitur për modelim statistikor o
   Dataset-i final i reduktuar për modelim.
 
 #### Artefakte shtesë
+
 - `models/scaler.pkl`  
   Objekti i `StandardScaler` për ripërdorim në inferencë ose pipeline të mëtejshme.
 
@@ -1137,19 +1261,25 @@ Ky është dataset-i final i reduktuar, i përgatitur për modelim statistikor o
 ### Vizualizimet e gjeneruara
 
 #### 1. Heatmap-at nga analiza fillestare
+
 ##### `pictures/pollutant_vs_predictors_heatmap.png`
+
 Paraqet korrelacionin ndërmjet ndotësve dhe tipareve të energjisë + motit.
 
 ##### `pictures/pollutant_correlation_heatmap.png`
+
 Paraqet korrelacionin ndërmjet vetë ndotësve atmosferikë.
 
 #### 2. Histogramat krahasuese para/pas
+
 Folderi `pictures/4C_visualization_before_after/` përmban figura që krahasojnë shpërndarjen:
+
 - para trajtimit,
 - pas trajtimit të outlier-ave,
 - pas trajtimit të skewness.
 
 ##### Figurat aktuale
+
 - `pm25_distribution_comparison.png`
 - `pollution_stagnation_index_distribution_comparison.png`
 - `rain_mm_distribution_comparison.png`
@@ -1159,24 +1289,31 @@ Folderi `pictures/4C_visualization_before_after/` përmban figura që krahasojn�
 #### Figurat e projektit
 
 ##### Pollutant vs Predictors Heatmap
+
 ![Pollutant vs Predictors](pictures/pollutant_vs_predictors_heatmap.png)
 
 ##### Pollutant Correlation Heatmap
+
 ![Pollutant Correlation](pictures/pollutant_correlation_heatmap.png)
 
 ##### PM2.5 Distribution Comparison
+
 ![PM2.5](pictures/4C_visualization_before_after/pm25_distribution_comparison.png)
 
 ##### Total Generation MW Distribution Comparison
+
 ![Total Generation](pictures/4C_visualization_before_after/total_generation_mw_distribution_comparison.png)
 
 ##### Pollution Stagnation Index Distribution Comparison
+
 ![Stagnation](pictures/4C_visualization_before_after/pollution_stagnation_index_distribution_comparison.png)
 
 ##### Rain (mm) Distribution Comparison
+
 ![Rain](pictures/4C_visualization_before_after/rain_mm_distribution_comparison.png)
 
 ##### Temperature-Wind Interaction Distribution Comparison
+
 ![Temp Wind](pictures/4C_visualization_before_after/temp_wind_interact_distribution_comparison.png)
 
 ### Teknikat e zbatuara dhe lidhja me lëndën
@@ -1184,34 +1321,41 @@ Folderi `pictures/4C_visualization_before_after/` përmban figura që krahasojn�
 Ky projekt përmbush në mënyrë të drejtpërdrejtë temat kryesore të lëndës “Machine Learning”.
 
 #### 1. Data collection
+
 - Shkarkim dhe konsolidim i të dhënave nga burime të ndryshme.
 - Përdorim i PowerShell, notebook-ut dhe CSV-ve bruto.
 
 #### 2. Data integration
+
 - Bashkim i tre burimeve heterogjene mbi bosht kohor të përbashkët.
 - Harmonizim i formateve të kohës dhe timezone.
 
 #### 3. Data cleaning
+
 - Heqja e duplikateve.
 - Korrigjimi i vlerave jo-logjike.
 - Kufizim i vlerave fizike jashtë intervaleve të pranueshme.
 
 #### 4. Missing value handling
+
 - Forward fill
 - Backfill
 - Plotësim i të dhënave pa heqje agresive të rreshtave
 
 #### 5. Validation
+
 - Kontrolli fizik `PM2.5 <= PM10`
 - Kontrolli i gaps kohore
 - Kontrolli final i `NULL`
 
 #### 6. Exploratory data analysis
+
 - Statistika përmbledhëse
 - Matrica korrelacioni
 - Heatmap-a për target-in dhe predictor-at
 
 #### 7. Feature engineering
+
 - Encodim ciklik i kohës
 - Lag features
 - Rolling features
@@ -1220,18 +1364,22 @@ Ky projekt përmbush në mënyrë të drejtpërdrejtë temat kryesore të lënd�
 - Domain-inspired stagnation index
 
 #### 8. Outlier handling
+
 - Quantile capping me kufijtë `0.5%` dhe `99.5%`
 - Qasje robuste pa fshirje të rreshtave
 
 #### 9. Skewness handling
+
 - `log1p`
 - `Yeo-Johnson`
 - Krahasim para/pas me statistika dhe vizualizime
 
 #### 10. Scaling
+
 - Standardizim i kolonave numerike me `StandardScaler`
 
 #### 11. Feature selection
+
 - Heqje manuale e kolonave jorelevante ose problematike
 - Heqje e kolonave konstante
 - Reduktim i multikolinearitetit përmes `VIF`
@@ -1241,17 +1389,20 @@ Ky projekt përmbush në mënyrë të drejtpërdrejtë temat kryesore të lënd�
 ### Ekzekutimi i projektit
 
 #### Parakushtet
+
 - Python 3.10+ ose më i ri
 - `pip`
 - mjedis virtual i rekomanduar
 - për skriptin PowerShell: qasje në `aws cli` nëse përdoret shkarkimi nga OpenAQ archive
 
 #### Instalimi i librarive
+
 ```bash
 pip install pandas numpy matplotlib seaborn scikit-learn statsmodels
 ```
 
 #### Ekzekutimi i pipeline-it
+
 Skriptat ekzekutohen sipas rendit logjik:
 
 ```bash
@@ -1274,6 +1425,7 @@ python src/preprocessing/4E_feature_selection.py
 ```
 
 #### Renditja e varësive
+
 Çdo skript varet nga output-i i mëparshëm. Prandaj rekomandohet ekzekutimi në rend strikt.
 
 ---
@@ -1289,14 +1441,16 @@ Produkti final i këtij projekti është:
 - dhe në fund një subset final tiparesh me multikolinearitet të reduktuar.
 
 Dataset-i final:
+
 - `data/4E_selected_dataset.csv`
 
 është forma më e përshtatshme për:
+
 - modelim prediktiv të `PM2.5`,
 - regresion,
 - krahasim modelesh machine learning,
 - analiza statistikore të marrëdhënieve mes energjisë, motit dhe ndotjes.
-  
+
 ---
 
 ## 02 Modelimi dhe analiza
@@ -1403,23 +1557,23 @@ OUTPUT_SPLIT_SUMMARY = BASE_DIR / "data" / "catboost_split_summary.csv"
 
 TARGET = "pm25"
 TIME_CANDIDATES = ["datetime", "date"]
-````
+```
 
 #### Data quality check në këtë fazë
 
 Para trajnimit, skripta bën kontrollin bazë të cilësisë për këtë fazë të modelimit:
 
-* kontrollon ekzistencën e target-it,
-* kontrollon mungesat në target dhe feature-a,
-* zëvendëson `inf` dhe `-inf` me `NaN`,
-* dhe heq rreshtat jo të plotë vetëm nëse janë të nevojshëm.
+- kontrollon ekzistencën e target-it,
+- kontrollon mungesat në target dhe feature-a,
+- zëvendëson `inf` dhe `-inf` me `NaN`,
+- dhe heq rreshtat jo të plotë vetëm nëse janë të nevojshëm.
 
 Në ekzekutimin e raportuar:
 
-* numri i rreshtave hyrës ka qenë **9347**
-* numri i feature-ave ka qenë **13**
-* mungesa në kolonat e modelit kanë qenë **0**
-* rreshta të hequr pas cleaning: **0**
+- numri i rreshtave hyrës ka qenë **9347**
+- numri i feature-ave ka qenë **13**
+- mungesa në kolonat e modelit kanë qenë **0**
+- rreshta të hequr pas cleaning: **0**
 
 #### Fragment kyç i kodit: kontrollet para modelit
 
@@ -1438,23 +1592,23 @@ df = df.dropna(subset=[TARGET] + feature_cols).copy()
 
 Për këtë model nuk është përdorur `random train_test_split`, por një ndarje kronologjike në tri pjesë:
 
-* `train`
-* `validation`
-* `test`
+- `train`
+- `validation`
+- `test`
 
 Kjo qasje është shumë e rëndësishme për problemin tonë, sepse të dhënat janë kohore dhe modeli duhet të testojë aftësinë për të parashikuar të ardhmen nga e kaluara, jo nga vlera të përziera rastësisht.
 
 Në ekzekutimin aktual, ndarja ka qenë:
 
-* `Train rows: 6542`
-* `Val rows: 1402`
-* `Test rows: 1403`
+- `Train rows: 6542`
+- `Val rows: 1402`
+- `Test rows: 1403`
 
 me intervale:
 
-* `Train range: 2023-08-18 09:00:00 -> 2025-07-17 21:00:00`
-* `Val range: 2025-07-17 22:00:00 -> 2025-09-18 12:00:00`
-* `Test range: 2025-09-18 13:00:00 -> 2025-11-27 19:00:00`
+- `Train range: 2023-08-18 09:00:00 -> 2025-07-17 21:00:00`
+- `Val range: 2025-07-17 22:00:00 -> 2025-09-18 12:00:00`
+- `Test range: 2025-09-18 13:00:00 -> 2025-11-27 19:00:00`
 
 #### Fragment kyç i kodit: ndarja kronologjike
 
@@ -1472,12 +1626,12 @@ test_df = df.iloc[val_end_idx:].copy()
 
 Modeli `CatBoostRegressor` është inicializuar me parametrat:
 
-* `iterations = 600`
-* `learning_rate = 0.03`
-* `depth = 6`
-* `loss_function = "RMSE"`
-* `eval_metric = "RMSE"`
-* `early_stopping_rounds = 50`
+- `iterations = 600`
+- `learning_rate = 0.03`
+- `depth = 6`
+- `loss_function = "RMSE"`
+- `eval_metric = "RMSE"`
+- `early_stopping_rounds = 50`
 
 Ky konfigurim është zgjedhur për të krijuar një model mjaftueshëm të fuqishëm për parashikim, por njëkohësisht praktik për trajnim dhe debug në mjedis lokal.
 
@@ -1499,10 +1653,10 @@ model = CatBoostRegressor(
 
 Gjatë trajnimit, skripta:
 
-* përdor `train` për mësim,
-* përdor `validation` për kontroll të performancës,
-* aktivizon `use_best_model=True`,
-* dhe përdor `early_stopping_rounds=50`.
+- përdor `train` për mësim,
+- përdor `validation` për kontroll të performancës,
+- aktivizon `use_best_model=True`,
+- dhe përdor `early_stopping_rounds=50`.
 
 #### Fragment kyç i kodit: trajnimi dhe validimi
 
@@ -1517,31 +1671,31 @@ model.fit(
 
 Në ekzekutimin aktual, modeli ka arritur:
 
-* `bestTest = 0.7030203514`
-* `bestIteration = 599`
+- `bestTest = 0.7030203514`
+- `bestIteration = 599`
 
 dhe është ruajtur në:
 
-* `models/catboost_model/catboost_pm25_model.cbm`
+- `models/catboost_model/catboost_pm25_model.cbm`
 
 #### Predikimi dhe metrikat
 
 Pas trajnimit, modeli gjeneron parashikime mbi test set-in dhe llogarit metrikat:
 
-* `MAE`
-* `RMSE`
-* `MAPE`
-* `SMAPE`
-* `R²`
+- `MAE`
+- `RMSE`
+- `MAPE`
+- `SMAPE`
+- `R²`
 
 Në ekzekutimin e raportuar, rezultatet kanë qenë:
 
-* `MAE = 0.800051`
-* `RMSE = 1.005971`
-* `MAPE_pct = 357.542306`
-* `SMAPE_pct = 108.638466`
-* `R2 = 0.331006`
-* `n_eval_points = 1403`
+- `MAE = 0.800051`
+- `RMSE = 1.005971`
+- `MAPE_pct = 357.542306`
+- `SMAPE_pct = 108.638466`
+- `R2 = 0.331006`
+- `n_eval_points = 1403`
 
 #### Fragment kyç i kodit: metrikat
 
@@ -1559,50 +1713,50 @@ metrics = {
 
 Skripta e CatBoost-it printon në console këto seksione:
 
-* `DATA QUALITY CHECK`
-* `CHRONOLOGICAL SPLIT SUMMARY`
-* `TRAINING`
-* `PREDICTION + METRICS`
-* `DONE`
+- `DATA QUALITY CHECK`
+- `CHRONOLOGICAL SPLIT SUMMARY`
+- `TRAINING`
+- `PREDICTION + METRICS`
+- `DONE`
 
 Pra, gjatë ekzekutimit përdoruesi mund të shohë në mënyrë të drejtpërdrejtë:
 
-* numrin e rreshtave hyrës,
-* numrin e feature-ave,
-* mungesat para cleaning,
-* ndarjen train/val/test,
-* progresin e trajnimit,
-* metrikat finale,
-* dhe rrugët ku ruhen file-t.
+- numrin e rreshtave hyrës,
+- numrin e feature-ave,
+- mungesat para cleaning,
+- ndarjen train/val/test,
+- progresin e trajnimit,
+- metrikat finale,
+- dhe rrugët ku ruhen file-t.
 
 #### Artefaktet e gjeneruara nga CatBoost
 
 Skripta ruan këto output-e:
 
-* `data/catboost_forecasts.csv`
+- `data/catboost_forecasts.csv`
   Parashikimet në test set bashkë me vlerat reale dhe residuals.
 
-* `data/catboost_metrics.csv`
+- `data/catboost_metrics.csv`
   Tabela e metrikave finale.
 
-* `data/catboost_feature_importance.csv`
+- `data/catboost_feature_importance.csv`
   Rëndësia e secilit feature.
 
-* `data/catboost_split_summary.csv`
+- `data/catboost_split_summary.csv`
   Përmbledhja e ndarjes kronologjike.
 
-* `models/catboost_model/catboost_pm25_model.cbm`
+- `models/catboost_model/catboost_pm25_model.cbm`
   Modeli i trajnuar.
 
-* `data/catboost_run_info.json`
+- `data/catboost_run_info.json`
   Përmbledhje e konfigurimit dhe output-eve.
 
 #### Vizualizimi interaktiv
 
 Skripta përfshin edhe ndërtimin e një grafiku interaktiv `Observed vs Predicted` me Plotly, ku parashikohet ruajtja e figurave në:
 
-* `pictures/catboost_model/catboost_forecast_interactive.html`
-* `pictures/catboost_model/catboost_forecast_interactive.png`
+- `pictures/catboost_model/catboost_forecast_interactive.html`
+- `pictures/catboost_model/catboost_forecast_interactive.png`
 
 Ky hap ishte implementuar në kod, por në ekzekutimin aktual skripta është ndalur te pjesa e vizualizimit për shkak të një problemi teknik me `Plotly add_vline()` dhe `Timestamp`, pasi modeli dhe metrikat ishin llogaritur tashmë me sukses.
 
@@ -1611,26 +1765,30 @@ Ky hap ishte implementuar në kod, por në ekzekutimin aktual skripta është nd
 ### LightGBM për parashikimin e PM2.5
 
 #### Pse LightGBM?
-* **Shpejtësi dhe efikasitet:** Algoritmi përdor *Gradient Boosting* të bazuar në pemë, duke ofruar performancë të lartë në të dhëna tabelare.
-* **Qartësi analitike (Feature Importance):** Ofron transparencë të plotë mbi peshën që ka secili faktor (prodhimi i energjisë elektrike, era, temperatura) në rezultatin final.
+
+- **Shpejtësi dhe efikasitet:** Algoritmi përdor _Gradient Boosting_ të bazuar në pemë, duke ofruar performancë të lartë në të dhëna tabelare.
+- **Qartësi analitike (Feature Importance):** Ofron transparencë të plotë mbi peshën që ka secili faktor (prodhimi i energjisë elektrike, era, temperatura) në rezultatin final.
 
 #### 1. Skenari izolues (Modeli baseline)
+
 Në këtë fazë, modeli u trajnua duke përdorur ekskluzivisht prodhimin e energjisë dhe kushtet meteorologjike, pa përfshirë informacion mbi ndotjen e orëve të kaluara.
 
 <img width="800" height="120" alt="image" src="https://github.com/user-attachments/assets/8f29a1b5-b0c6-4f6f-9358-e43522753493" /> <br />
 
-* **R² Score:** 0.1944
-* **Konstatimi:** Rezultati prej ~19% është një gjetje e rëndësishme. Kjo vërteton shkencërisht se sado të sakta të jenë të dhënat e motit apo raportimet e energjisë, PM2.5 nuk mund të parashikohet saktë vetëm përmes inputeve të çastit, pasi grimcat kanë një natyrë të lartë akumuluese në atmosferë.
+- **R² Score:** 0.1944
+- **Konstatimi:** Rezultati prej ~19% është një gjetje e rëndësishme. Kjo vërteton shkencërisht se sado të sakta të jenë të dhënat e motit apo raportimet e energjisë, PM2.5 nuk mund të parashikohet saktë vetëm përmes inputeve të çastit, pasi grimcat kanë një natyrë të lartë akumuluese në atmosferë.
 
 #### 2. Modeli dinamik (Skenari me "lags")
+
 Për të rregulluar këtë dhe për t'u dhënë kuptim faktorëve tanë kryesorë, modeli u përmirësua duke përfshirë variablat autogresive **pm25_lag_1** dhe **pm25_lag_24** (kujtesa e ajrit). Kjo rriti saktësinë në mënyrë drastike nga **0.19 në 0.73**.
 
 <img width="800" height="120" alt="image" src="https://github.com/user-attachments/assets/7a87d2be-a7ae-47b8-a219-3c9c764669d7" /> <br />
 
 **Roli i motit dhe energjisë në modelin e ri:**
-Përfshirja e *lags* nuk i zhvlerëson variablat tona, por i vendos në kontekstin e duhur fizik:
-* **Gjendja bazë:** Ndotja paraprake (`lag`) përcakton sasinë e smogut që tashmë gjendet në atmosferë.
-* **Katalizatorët:** Prodhimi i energjisë dhe moti veprojnë si agjentët kryesorë që rrisin këtë bazë (përmes emetimeve shtesë) ose e ulin atë (përmes shpërndarjes nga era).
+Përfshirja e _lags_ nuk i zhvlerëson variablat tona, por i vendos në kontekstin e duhur fizik:
+
+- **Gjendja bazë:** Ndotja paraprake (`lag`) përcakton sasinë e smogut që tashmë gjendet në atmosferë.
+- **Katalizatorët:** Prodhimi i energjisë dhe moti veprojnë si agjentët kryesorë që rrisin këtë bazë (përmes emetimeve shtesë) ose e ulin atë (përmes shpërndarjes nga era).
 
 #### Rezultatet dhe vizualizimet
 
@@ -1645,14 +1803,17 @@ Grafiku tregon se modeli i përmirësuar dinamik arrin të ndjekë me saktësi p
 ![Actual vs Predicted](src/lightgbm_model/improved_model/actual_vs_predicted.png)
 
 #### Konkluzioni
-Ky eksperiment vërteton se ndikimi i termocentraleve dhe motit në Prishtinë është shumë domethënës, por efekti i tyre i vërtetë mund të matet dhe parashikohet saktë vetëm kur modeli merr parasysh natyrën akumuluese të smogut në atmosferë. 
+
+Ky eksperiment vërteton se ndikimi i termocentraleve dhe motit në Prishtinë është shumë domethënës, por efekti i tyre i vërtetë mund të matet dhe parashikohet saktë vetëm kur modeli merr parasysh natyrën akumuluese të smogut në atmosferë.
 
 #### Artifaktet e gjeneruara
-* `baseline_model.joblib` / `improved_model.joblib`: Modelet e ruajtura.
-* `metrics_summary.txt`: Përmbledhja e metrikave (MAE, RMSE, R²).
-* `feature_importance.csv` dhe `feature_importance.png`: Pesha e saktë e ndikimit për çdo variabël.
-* `actual_vs_predicted.png`: Grafiku kohor i përputhshmërisë mes parashikimit të modelit dhe ndotjes reale.
-* `learning_curve.png`: Kurba e rënies së gabimit gjatë procesit të trajnimit të modelit.
+
+- `baseline_model.joblib` / `improved_model.joblib`: Modelet e ruajtura.
+- `metrics_summary.txt`: Përmbledhja e metrikave (MAE, RMSE, R²).
+- `feature_importance.csv` dhe `feature_importance.png`: Pesha e saktë e ndikimit për çdo variabël.
+- `actual_vs_predicted.png`: Grafiku kohor i përputhshmërisë mes parashikimit të modelit dhe ndotjes reale.
+- `learning_curve.png`: Kurba e rënies së gabimit gjatë procesit të trajnimit të modelit.
+
 ---
 
 ### HDBSCAN për analizë unsupervised
@@ -1661,24 +1822,24 @@ Për analizën unsupervised është përdorur `HDBSCAN`, një algoritëm cluster
 
 Kjo pjesë është ndërtuar për të eksploruar strukturën latente të dataset-it final dhe për të identifikuar:
 
-* profile të ngjashme të vëzhgimeve,
-* cluster-a me kushte të ngjashme meteorologjike dhe energjetike,
-* si dhe pikat që sillen si noise ose anomali.
+- profile të ngjashme të vëzhgimeve,
+- cluster-a me kushte të ngjashme meteorologjike dhe energjetike,
+- si dhe pikat që sillen si noise ose anomali.
 
 #### Input
 
 Si edhe te CatBoost, hyrja është:
 
-* `data/4E_selected_dataset.csv`
+- `data/4E_selected_dataset.csv`
 
 #### Përgatitja e feature-ave
 
 Për HDBSCAN përdoren kolonat numerike të dataset-it final. Në këtë fazë:
 
-* kolonat boolean, nëse ekzistojnë, kthehen në `int`,
-* zgjidhen kolonat numerike,
-* përjashtohen kolonat teknike ose kolonat që krijohen nga vetë clustering-u,
-* përjashtohen kolonat me prapashtesë `"_was_missing"`.
+- kolonat boolean, nëse ekzistojnë, kthehen në `int`,
+- zgjidhen kolonat numerike,
+- përjashtohen kolonat teknike ose kolonat që krijohen nga vetë clustering-u,
+- përjashtohen kolonat me prapashtesë `"_was_missing"`.
 
 #### Fragment kyç i kodit: përzgjedhja e kolonave numerike
 
@@ -1719,10 +1880,10 @@ joblib.dump(scaler, SCALER_PATH)
 
 Modeli është konfiguruar me:
 
-* `min_cluster_size = 80`
-* `min_samples = 20`
-* `cluster_selection_method = "eom"`
-* `metric = "euclidean"`
+- `min_cluster_size = 80`
+- `min_samples = 20`
+- `cluster_selection_method = "eom"`
+- `metric = "euclidean"`
 
 #### Fragment kyç i kodit: inicializimi i HDBSCAN
 
@@ -1741,9 +1902,9 @@ clusterer = hdbscan.HDBSCAN(
 
 Pas trajnimit, modeli gjeneron për çdo vëzhgim:
 
-* `cluster_label`
-* `cluster_probability`
-* `outlier_score`
+- `cluster_label`
+- `cluster_probability`
+- `outlier_score`
 
 Këto kolona shtohen në dataset-in final të cluster-uar.
 
@@ -1751,9 +1912,9 @@ Këto kolona shtohen në dataset-in final të cluster-uar.
 
 Për të vizualizuar cluster-at në 2 dimensione, skripta përdor `UMAP` me konfigurim:
 
-* `n_neighbors = 30`
-* `min_dist = 0.05`
-* `n_components = 2`
+- `n_neighbors = 30`
+- `min_dist = 0.05`
+- `n_components = 2`
 
 #### Fragment kyç i kodit: UMAP
 
@@ -1771,8 +1932,8 @@ embedding = reducer.fit_transform(X_scaled)
 
 Pas këtij hapi krijohen kolonat:
 
-* `umap_1`
-* `umap_2`
+- `umap_1`
+- `umap_2`
 
 të cilat përdoren për vizualizimin interaktiv të cluster-ëve.
 
@@ -1780,9 +1941,9 @@ të cilat përdoren për vizualizimin interaktiv të cluster-ëve.
 
 Për vlerësimin e strukturës së cluster-ëve, skripta llogarit:
 
-* `silhouette_score`
-* `davies_bouldin_score`
-* `calinski_harabasz_score`
+- `silhouette_score`
+- `davies_bouldin_score`
+- `calinski_harabasz_score`
 
 duke përjashtuar pikat `noise` (`cluster_label = -1`) aty ku kërkohet.
 
@@ -1800,63 +1961,63 @@ internal = {
 
 Skripta e HDBSCAN është ndërtuar që të printojë në console këto seksione:
 
-* `DATA QUALITY CHECK`
-* `SCALING`
-* `HDBSCAN TRAINING`
-* `UMAP EMBEDDING`
-* `CLUSTERING METRICS`
-* `INTERACTIVE VISUALIZATION`
-* `DONE`
+- `DATA QUALITY CHECK`
+- `SCALING`
+- `HDBSCAN TRAINING`
+- `UMAP EMBEDDING`
+- `CLUSTERING METRICS`
+- `INTERACTIVE VISUALIZATION`
+- `DONE`
 
 Pra, gjatë ekzekutimit përdoruesi mund të shohë:
 
-* sa rreshta ka dataset-i para dhe pas cleaning,
-* cilat feature përdoren,
-* metrikat e clustering-ut,
-* sa cluster-a janë gjetur,
-* sa pika janë klasifikuar si noise,
-* dhe ku janë ruajtur output-et.
+- sa rreshta ka dataset-i para dhe pas cleaning,
+- cilat feature përdoren,
+- metrikat e clustering-ut,
+- sa cluster-a janë gjetur,
+- sa pika janë klasifikuar si noise,
+- dhe ku janë ruajtur output-et.
 
 #### Artefaktet e gjeneruara nga HDBSCAN
 
 Skripta ruan këto output-e:
 
-* `data/hdbscan_clustered_dataset.csv`
+- `data/hdbscan_clustered_dataset.csv`
   Dataset-i final me kolonat `cluster_label`, `cluster_probability`, `outlier_score`, `umap_1`, `umap_2`.
 
-* `data/hdbscan_metrics.csv`
+- `data/hdbscan_metrics.csv`
   Metrikat e clustering-ut dhe përmbledhja e modelit.
 
-* `data/hdbscan_cluster_summary.csv`
+- `data/hdbscan_cluster_summary.csv`
   Përmbledhje statistikore për çdo cluster.
 
-* `data/hdbscan_feature_summary.csv`
+- `data/hdbscan_feature_summary.csv`
   Përmbledhje e tipareve që dallojnë më shumë cluster-at.
 
-* `models/hdbscan_model/hdbscan_model.pkl`
+- `models/hdbscan_model/hdbscan_model.pkl`
   Modeli i trajnuar.
 
-* `models/hdbscan_model/hdbscan_scaler.pkl`
+- `models/hdbscan_model/hdbscan_scaler.pkl`
   Scaler-i i përdorur për standardizim.
 
-* `models/hdbscan_model/hdbscan_umap.pkl`
+- `models/hdbscan_model/hdbscan_umap.pkl`
   Objekti i ruajtur i reduktimit dimensional.
 
-* `data/hdbscan_run_info.json`
+- `data/hdbscan_run_info.json`
   Informacion për konfigurimin dhe rrugët e output-eve.
 
 #### Vizualizimi interaktiv
 
 Vizualizimi interaktiv i cluster-ëve gjenerohet në:
 
-* `pictures/hdbscan_model/hdbscan_umap_interactive.html`
-* `pictures/hdbscan_model/hdbscan_umap_interactive.png`
+- `pictures/hdbscan_model/hdbscan_umap_interactive.html`
+- `pictures/hdbscan_model/hdbscan_umap_interactive.png`
 
 Ky vizualizim lejon:
 
-* dallimin e cluster-ëve në plan 2D,
-* evidentimin e noise/outlier points,
-* dhe inspektimin e feature-ave kryesore për secilin vëzhgim përmes hover.
+- dallimin e cluster-ëve në plan 2D,
+- evidentimin e noise/outlier points,
+- dhe inspektimin e feature-ave kryesore për secilin vëzhgim përmes hover.
 
 ---
 
@@ -1868,32 +2029,32 @@ Në këtë fazë janë përdorur dy nivele interpretimi:
 
 Te `CatBoost`, interpretimi bazohet në:
 
-* metrikat e regresionit,
-* krahasimin ndërmjet vlerave reale dhe të parashikuara,
-* residuals,
-* dhe rëndësinë e feature-ave.
+- metrikat e regresionit,
+- krahasimin ndërmjet vlerave reale dhe të parashikuara,
+- residuals,
+- dhe rëndësinë e feature-ave.
 
 Kjo ndihmon në kuptimin se:
 
-* sa mirë modeli e parashikon `PM2.5`,
-* cilat tipare ndikojnë më shumë në parashikim,
-* dhe sa e qëndrueshme është performanca në test set.
+- sa mirë modeli e parashikon `PM2.5`,
+- cilat tipare ndikojnë më shumë në parashikim,
+- dhe sa e qëndrueshme është performanca në test set.
 
 #### 2. Interpretimi unsupervised
 
 Te `HDBSCAN`, interpretimi bazohet në:
 
-* numrin dhe përmasat e cluster-ëve,
-* pikat noise,
-* probabilitetet e anëtarësimit në cluster,
-* outlier scores,
-* dhe përmbledhjet statistikore të feature-ave sipas cluster-it.
+- numrin dhe përmasat e cluster-ëve,
+- pikat noise,
+- probabilitetet e anëtarësimit në cluster,
+- outlier scores,
+- dhe përmbledhjet statistikore të feature-ave sipas cluster-it.
 
 Kjo ndihmon për të kuptuar:
 
-* nëse të dhënat ndahen në profile natyrore,
-* nëse ekzistojnë regjime të ndryshme të ndotjes,
-* dhe cilat kombinime të motit dhe energjisë shfaqin sjellje të ngjashme.
+- nëse të dhënat ndahen në profile natyrore,
+- nëse ekzistojnë regjime të ndryshme të ndotjes,
+- dhe cilat kombinime të motit dhe energjisë shfaqin sjellje të ngjashme.
 
 ---
 
@@ -1903,27 +2064,27 @@ Pas fazës së dytë të projektit, përveç output-eve të pipeline-it të për
 
 #### CatBoost
 
-* `data/catboost_forecasts.csv`
-* `data/catboost_metrics.csv`
-* `data/catboost_feature_importance.csv`
-* `data/catboost_split_summary.csv`
-* `data/catboost_run_info.json`
-* `models/catboost_model/catboost_pm25_model.cbm`
-* `pictures/catboost_model/catboost_forecast_interactive.html`
-* `pictures/catboost_model/catboost_forecast_interactive.png`
+- `data/catboost_forecasts.csv`
+- `data/catboost_metrics.csv`
+- `data/catboost_feature_importance.csv`
+- `data/catboost_split_summary.csv`
+- `data/catboost_run_info.json`
+- `models/catboost_model/catboost_pm25_model.cbm`
+- `pictures/catboost_model/catboost_forecast_interactive.html`
+- `pictures/catboost_model/catboost_forecast_interactive.png`
 
 #### HDBSCAN
 
-* `data/hdbscan_clustered_dataset.csv`
-* `data/hdbscan_metrics.csv`
-* `data/hdbscan_cluster_summary.csv`
-* `data/hdbscan_feature_summary.csv`
-* `data/hdbscan_run_info.json`
-* `models/hdbscan_model/hdbscan_model.pkl`
-* `models/hdbscan_model/hdbscan_scaler.pkl`
-* `models/hdbscan_model/hdbscan_umap.pkl`
-* `pictures/hdbscan_model/hdbscan_umap_interactive.html`
-* `pictures/hdbscan_model/hdbscan_umap_interactive.png`
+- `data/hdbscan_clustered_dataset.csv`
+- `data/hdbscan_metrics.csv`
+- `data/hdbscan_cluster_summary.csv`
+- `data/hdbscan_feature_summary.csv`
+- `data/hdbscan_run_info.json`
+- `models/hdbscan_model/hdbscan_model.pkl`
+- `models/hdbscan_model/hdbscan_scaler.pkl`
+- `models/hdbscan_model/hdbscan_umap.pkl`
+- `pictures/hdbscan_model/hdbscan_umap_interactive.html`
+- `pictures/hdbscan_model/hdbscan_umap_interactive.png`
 
 ---
 
@@ -1935,27 +2096,27 @@ Në këtë fazë janë ndërtuar edhe vizualizime të reja, përtej heatmap-ave 
 
 Grafiku interaktiv `Observed vs Predicted` është konceptuar për të paraqitur:
 
-* serinë reale të `PM2.5`,
-* parashikimet në test set,
-* residuals,
-* dhe kufijtë kohorë ndërmjet `train`, `validation` dhe `test`.
+- serinë reale të `PM2.5`,
+- parashikimet në test set,
+- residuals,
+- dhe kufijtë kohorë ndërmjet `train`, `validation` dhe `test`.
 
 Ky vizualizim ruhet në:
 
-* `pictures/catboost_model/catboost_forecast_interactive.html`
+- `pictures/catboost_model/catboost_forecast_interactive.html`
 
 #### Vizualizimi i HDBSCAN
 
 Vizualizimi 2D me `UMAP` është konceptuar për të paraqitur:
 
-* shpërndarjen e vëzhgimeve në hapësirë të reduktuar,
-* cluster-at e gjetur nga HDBSCAN,
-* noise points,
-* dhe karakteristikat kryesore në hover.
+- shpërndarjen e vëzhgimeve në hapësirë të reduktuar,
+- cluster-at e gjetur nga HDBSCAN,
+- noise points,
+- dhe karakteristikat kryesore në hover.
 
 Ky vizualizim ruhet në:
 
-* `pictures/hdbscan_model/hdbscan_umap_interactive.html`
+- `pictures/hdbscan_model/hdbscan_umap_interactive.html`
 
 ---
 
@@ -1965,17 +2126,16 @@ Produkti final i këtij projekti nuk është më vetëm një dataset i përgatit
 
 Rezultati final përfshin:
 
-* një dataset të integruar, të pastruar, të validuar dhe të transformuar;
-* një subset final tiparesh të përshtatshme për modelim;
-* një model supervised `CatBoostRegressor` për parashikimin e `PM2.5`;
-* një model unsupervised `HDBSCAN` për clustering dhe outlier analysis;
-* artefakte të metrikave, parashikimeve, cluster-ëve dhe rëndësisë së tipareve;
-* si dhe vizualizime interaktive për interpretim më të qartë të rezultateve.
+- një dataset të integruar, të pastruar, të validuar dhe të transformuar;
+- një subset final tiparesh të përshtatshme për modelim;
+- një model supervised `CatBoostRegressor` për parashikimin e `PM2.5`;
+- një model unsupervised `HDBSCAN` për clustering dhe outlier analysis;
+- artefakte të metrikave, parashikimeve, cluster-ëve dhe rëndësisë së tipareve;
+- si dhe vizualizime interaktive për interpretim më të qartë të rezultateve.
 
 Kjo do të thotë se pipeline-i i ndërtuar në këtë projekt tashmë përbën jo vetëm një proces të përgatitjes së të dhënave, por edhe një bazë funksionale për krahasim modelesh, analiza të mëtejshme dhe zgjerim në faza të ardhshme.
 
 ---
-
 
 ---
 
@@ -1993,7 +2153,6 @@ Në vazhdim, ky projekt mund të zgjerohet me:
 
 ## Anëtarët e grupit
 
-
 - **Diellza Përvetica**
 - **Fatjeta Gashi**
 - **Festina Klinaku**
@@ -2007,4 +2166,3 @@ Në vazhdim, ky projekt mund të zgjerohet me:
 - Dr. Sc. Mërgim H. Hoti
 - Burimet publike dhe institucionale të përdorura për ndërtimin e dataset-eve hyrëse
 - Të gjithë anëtarët e grupit që kontribuan në ndërtimin e pipeline-it
-
