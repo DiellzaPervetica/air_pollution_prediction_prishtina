@@ -1,0 +1,108 @@
+{
+  "input_path": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\phase_1\\4E_selected_dataset.csv",
+  "model_path": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\models\\sarimax_model\\sarimax_pm25_model.pkl",
+  "summary_path": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\models\\sarimax_model\\sarimax_summary.txt",
+  "feature_columns_path": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\models\\sarimax_model\\sarimax_feature_columns.pkl",
+  "outputs": {
+    "forecasts": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\sarimax_forecasts.csv",
+    "metrics": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\sarimax_metrics.csv",
+    "coefficients": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\sarimax_coefficients.csv",
+    "candidate_results": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\sarimax_candidate_results.csv",
+    "split_summary": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\sarimax_split_summary.csv",
+    "residuals": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\sarimax_residuals.csv",
+    "interactive_plot": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\sarimax_model\\sarimax_forecast_interactive.html",
+    "static_plot": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\sarimax_model\\sarimax_actual_vs_predicted.png",
+    "residual_diagnostics": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\sarimax_model\\sarimax_residual_diagnostics.png"
+  },
+  "config": {
+    "target": "pm25",
+    "train_ratio": 0.7,
+    "val_ratio": 0.15,
+    "test_ratio": 0.15,
+    "candidate_models": [
+      {
+        "order": [
+          1,
+          0,
+          1
+        ],
+        "seasonal_order": [
+          1,
+          0,
+          1,
+          24
+        ],
+        "trend": "c"
+      },
+      {
+        "order": [
+          2,
+          0,
+          1
+        ],
+        "seasonal_order": [
+          1,
+          0,
+          1,
+          24
+        ],
+        "trend": "c"
+      },
+      {
+        "order": [
+          1,
+          0,
+          2
+        ],
+        "seasonal_order": [
+          1,
+          0,
+          1,
+          24
+        ],
+        "trend": "c"
+      },
+      {
+        "order": [
+          1,
+          0,
+          1
+        ],
+        "seasonal_order": [
+          1,
+          1,
+          1,
+          24
+        ],
+        "trend": "c"
+      }
+    ],
+    "maxiter": 70,
+    "forecast_horizon": 24
+  },
+  "selected_model": {
+    "order": [
+      1,
+      0,
+      1
+    ],
+    "seasonal_order": [
+      1,
+      0,
+      1,
+      24
+    ],
+    "trend": "c"
+  },
+  "feature_columns": [
+    "hour_sin",
+    "hour_cos",
+    "pollution_stagnation_index",
+    "wind_x_vector",
+    "wind_y_vector",
+    "total_generation_mw",
+    "temperature_2m (\u00b0C)",
+    "rain (mm)",
+    "relative_humidity_2m (%)"
+  ]
+}

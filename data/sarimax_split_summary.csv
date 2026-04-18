@@ -1,0 +1,2 @@
+rows_total,rows_train,rows_val,rows_test,train_start,train_end,val_start,val_end,test_start,test_end
+9347,6542,1402,1403,2023-08-18 09:00:00,2025-07-17 21:00:00,2025-07-17 22:00:00,2025-09-18 12:00:00,2025-09-18 13:00:00,2025-11-27 19:00:00
