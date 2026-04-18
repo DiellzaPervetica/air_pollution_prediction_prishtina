@@ -50,7 +50,9 @@
    - [Qasja e përgjithshme](#qasja-e-përgjithshme)
    - [CatBoost për parashikimin e PM2.5](#catboost-për-parashikimin-e-pm25)
    - [LightGBM për parashikimin e PM2.5](#lightgbm-për-parashikimin-e-pm25)
+   - [SARIMAX për parashikimin e PM2.5](#sarimax-për-parashikimin-e-pm25)
    - [HDBSCAN për analizë unsupervised](#hdbscan-për-analizë-unsupervised)
+   - [Gaussian Mixture për analizë unsupervised](#gaussian-mixture-për-analizë-unsupervised)
    - [Validimi korrekt pa leakage](#validimi-korrekt-pa-leakage)
    - [Metrikat dhe interpretimi i rezultateve](#metrikat-dhe-interpretimi-i-rezultateve)
    - [Artefaktet e krijuara nga modelet](#artefaktet-e-krijuara-nga-modelet)
@@ -86,7 +88,9 @@
    - Qasja e përgjithshme
    - CatBoost për parashikimin e PM2.5
    - LightGBM për parashikimin e PM2.5
+   - SARIMAX për parashikimin e PM2.5
    - HDBSCAN për analizë unsupervised
+   - Gaussian Mixture për analizë unsupervised
    - Validimi korrekt pa leakage
    - Metrikat dhe interpretimi i rezultateve
    - Artefaktet e krijuara nga modelet
@@ -120,7 +124,7 @@ Më pas, këto burime:
 
 Ky projekt demonstron të gjithë ciklin e përgatitjes së të dhënave: nga kolektimi, integrimi dhe kontrolli i cilësisë, deri te feature engineering, transformimi statistikor dhe feature selection.
 
-Në fazën e dytë, dataset-i final `4E_selected_dataset.csv` është përdorur edhe për modelim dhe analizë eksploruese të avancuar. Konkretisht, është implementuar një model supervised `CatBoostRegressor` për parashikimin e `PM2.5` mbi ndarjen kronologjike `train/validation/test`, si dhe një model unsupervised `HDBSCAN` për identifikimin e strukturave natyrore, cluster-ëve dhe outlier-ave në të dhënat e përgatitura. Kjo e zgjeron projektin nga një pipeline i përgatitjes së të dhënave në një workflow të plotë analitik dhe modelues.
+Në fazën e dytë, dataset-i final `4E_selected_dataset.csv` është përdorur edhe për modelim dhe analizë eksploruese të avancuar. Konkretisht, janë implementuar tre modele supervised (`CatBoostRegressor`, `LightGBM`, `SARIMAX`) për parashikimin e `PM2.5`, si dhe dy modele unsupervised (`HDBSCAN` dhe `Gaussian Mixture`) për identifikimin e strukturave natyrore, cluster-ëve, regjimeve mjedisore dhe outlier-ave në të dhënat e përgatitura. Kjo e zgjeron projektin nga një pipeline i përgatitjes së të dhënave në një workflow të plotë analitik dhe modelues.
 
 ---
 
@@ -143,8 +147,8 @@ Objektivat kryesore janë:
 - të zbutet ndikimi i outlier-ave dhe shpërndarjeve shumë të shtrembëruara;
 - të standardizohet dataset-i për përdorim në modele statistikore dhe machine learning;
 - të eliminohet multikolineariteti i tepërt përmes VIF-based feature selection.
-- të përdoret dataset-i final i përzgjedhur për ndërtimin dhe validimin e një modeli supervised për parashikimin e `PM2.5`;
-- të analizohet struktura e brendshme e të dhënave përmes një metode unsupervised clustering, me qëllim identifikimin e regjimeve të ndryshme të ndotjes dhe kushteve atmosferike.
+- të përdoret dataset-i final i përzgjedhur për ndërtimin dhe validimin e modeleve supervised për parashikimin e `PM2.5`;
+- të analizohet struktura e brendshme e të dhënave përmes metodave unsupervised clustering, me qëllim identifikimin e regjimeve të ndryshme të ndotjes dhe kushteve atmosferike.
 
 ---
 
@@ -1457,10 +1461,10 @@ Dataset-i final:
 
 Pas përfundimit të pipeline-it të përgatitjes së të dhënave, dataset-i final `data/4E_selected_dataset.csv` është përdorur si hyrje për një fazë të dytë të projektit, e fokusuar në modelim dhe analizë të avancuar. Kjo fazë e zgjeron projektin nga një pipeline i pastrimit dhe përgatitjes së të dhënave në një workflow të plotë të machine learning dhe data analysis.
 
-Në këtë fazë janë zhvilluar dy qasje komplementare:
+Në këtë fazë janë zhvilluar disa qasje komplementare:
 
-- një qasje **supervised**, për parashikimin e `PM2.5` me `CatBoostRegressor`;
-- një qasje **unsupervised**, për analizimin e strukturës së brendshme të të dhënave me `HDBSCAN`.
+- qasje **supervised**, për parashikimin e `PM2.5` me `CatBoostRegressor`, `LightGBM` dhe `SARIMAX`;
+- qasje **unsupervised**, për analizimin e strukturës së brendshme të të dhënave me `HDBSCAN` dhe `Gaussian Mixture`.
 
 Qëllimi i kësaj pjese nuk është vetëm ndërtimi i modeleve, por edhe demonstrimi që dataset-i final i krijuar nga pipeline-i është realisht i përdorshëm për:
 
@@ -1816,6 +1820,286 @@ Ky eksperiment vërteton se ndikimi i termocentraleve dhe motit në Prishtinë �
 
 ---
 
+### SARIMAX për parashikimin e PM2.5
+
+Përveç modeleve tree-based, në këtë projekt është implementuar edhe `SARIMAX` (`Seasonal AutoRegressive Integrated Moving Average with eXogenous variables`), një model statistikor shumë i përshtatshëm për seri kohore me:
+
+- varësi autoregresive,
+- sezonalitet të qartë,
+- dhe ndikim nga variabla të jashtëm si moti dhe prodhimi i energjisë.
+
+Kjo e bën `SARIMAX` një zgjedhje shumë të fortë akademikisht për temën tonë, sepse jo vetëm parashikon `PM2.5`, por edhe lejon interpretim të drejtpërdrejtë të:
+
+- memorjes kohore të ndotjes,
+- sezonalitetit 24-orësh,
+- dhe rolit të faktorëve meteorologjikë dhe energjetikë si variabla exogenous.
+
+Implementimi ndodhet në:
+
+- `src/phase_2/sarimax_model/sarimax_model.py`
+
+#### Pse SARIMAX?
+
+Ky model është zgjedhur sepse:
+
+- është benchmark statistikor i fortë për seri kohore mjedisore;
+- kap njëkohësisht komponentin autoregresiv, moving average dhe sezonalitetin ditor;
+- lejon shtimin e feature-ave exogenous pa e humbur interpretueshmërinë;
+- dhe prodhon koeficientë statistikisht të lexueshëm, gjë shumë e vlefshme për dokumentim akademik.
+
+Në termat e projektit tonë, `SARIMAX` i përgjigjet drejtpërdrejt pyetjes nëse `PM2.5` në Prishtinë mund të shpjegohet si kombinim i:
+
+- gjendjes së vet në të kaluarën,
+- ciklit ditor të ndotjes,
+- kushteve atmosferike,
+- dhe prodhimit të energjisë.
+
+#### Input
+
+Skripta kontrollon fillimisht dy lokacione të mundshme për dataset-in final:
+
+- `data/4E_selected_dataset.csv`
+- `data/phase_1/4E_selected_dataset.csv`
+
+Në ekzekutimin aktual të raportuar në repo, input-i real ka qenë:
+
+- `data/phase_1/4E_selected_dataset.csv`
+
+#### Target
+
+Target-i i modelit supervised është:
+
+- `pm25`
+
+#### Feature-at exogenous të përdorura
+
+Në konfigurimin final janë përdorur 9 feature-a exogenous:
+
+- `hour_sin`
+- `hour_cos`
+- `pollution_stagnation_index`
+- `wind_x_vector`
+- `wind_y_vector`
+- `total_generation_mw`
+- `temperature_2m (°C)`
+- `rain (mm)`
+- `relative_humidity_2m (%)`
+
+Kjo zgjedhje është shumë e arsyeshme për një model statistikor si `SARIMAX`, sepse mban vetëm tiparet më kuptimplota dhe shmang fryrjen e panevojshme të modelit me shumë variabla të njëkohshme.
+
+#### Fragment kyç i kodit: konfigurimi i modelit
+
+```python
+TARGET = "pm25"
+FORECAST_HORIZON = 24
+
+EXOG_FEATURE_PRIORITY = [
+    "hour_sin",
+    "hour_cos",
+    "pollution_stagnation_index",
+    "wind_x_vector",
+    "wind_y_vector",
+    "total_generation_mw",
+    "temperature_2m (°C)",
+    "rain (mm)",
+    "relative_humidity_2m (%)",
+]
+
+MODEL_CANDIDATES = [
+    {"order": (1, 0, 1), "seasonal_order": (1, 0, 1, 24), "trend": "c"},
+    {"order": (2, 0, 1), "seasonal_order": (1, 0, 1, 24), "trend": "c"},
+    {"order": (1, 0, 2), "seasonal_order": (1, 0, 1, 24), "trend": "c"},
+    {"order": (1, 0, 1), "seasonal_order": (1, 1, 1, 24), "trend": "c"},
+]
+```
+
+#### Përgatitja e të dhënave
+
+Para trajnimit, skripta:
+
+- identifikon kolonën kohore (`datetime` ose `date`);
+- i rendit vëzhgimet në mënyrë kronologjike;
+- heq duplikatet eventuale sipas timestamp-it;
+- konverton target-in dhe feature-at në formë numerike;
+- zëvendëson `inf` dhe `-inf` me `NaN`;
+- dhe ruan vetëm rreshtat validë për target-in dhe feature-at exogenous.
+
+Pas këtij hapi janë përdorur:
+
+- `9347` rreshta totale
+- `9` feature-a exogenous
+
+#### Validimi korrekt pa leakage
+
+Një pikë shumë e rëndësishme metodologjikisht është se `SARIMAX` nuk është trajnuar me ndarje rastësore, por me ndarje kronologjike `train/validation/test`. Kjo është qasja e duhur për seri kohore, sepse modeli duhet të parashikojë të ardhmen nga e kaluara, jo nga të dhëna të përziera.
+
+Ndarja finale ka qenë:
+
+- `Train rows: 6542`
+- `Validation rows: 1402`
+- `Test rows: 1403`
+
+me intervale:
+
+- `Train range: 2023-08-18 09:00:00 -> 2025-07-17 21:00:00`
+- `Validation range: 2025-07-17 22:00:00 -> 2025-09-18 12:00:00`
+- `Test range: 2025-09-18 13:00:00 -> 2025-11-27 19:00:00`
+
+#### Fragment kyç i kodit: ndarja kronologjike
+
+```python
+n = len(df)
+train_end_idx = int(n * TRAIN_RATIO)
+val_end_idx = int(n * (TRAIN_RATIO + VAL_RATIO))
+
+train_df = df.iloc[:train_end_idx].copy()
+val_df = df.iloc[train_end_idx:val_end_idx].copy()
+test_df = df.iloc[val_end_idx:].copy()
+```
+
+#### Zgjedhja e modelit final
+
+Përzgjedhja nuk është bërë me vetëm një konfigurim të vetëm, por me krahasim të katër kandidatëve `SARIMAX` mbi validation set. Kjo është shumë e rëndësishme për dokumentim akademik, sepse tregon se modeli final është zgjedhur mbi bazë performance dhe jo vetëm mbi intuitë.
+
+Kandidatët e testuar kanë qenë:
+
+- `(1, 0, 1) x (1, 0, 1, 24)` me `trend = c`
+- `(2, 0, 1) x (1, 0, 1, 24)` me `trend = c`
+- `(1, 0, 2) x (1, 0, 1, 24)` me `trend = c`
+- `(1, 0, 1) x (1, 1, 1, 24)` me `trend = c`
+
+Sipas `validation_RMSE`, modeli më i mirë ka dalë:
+
+- `order = (1, 0, 1)`
+- `seasonal_order = (1, 0, 1, 24)`
+- `trend = "c"`
+
+me rezultat:
+
+- `Validation RMSE = 2.0431`
+- `Validation R² = 0.7140`
+
+Modeli final më pas është ritrajnuar mbi `train + validation`, ndërsa testimi final është bërë vetëm mbi `test`, duke ruajtur një holdout të pastër kohor.
+
+#### Fragment kyç i kodit: zgjedhja dhe ritrajnimi final
+
+```python
+for candidate in MODEL_CANDIDATES:
+    record, _ = evaluate_candidate(train_df, val_df, feature_cols, candidate, scaler)
+    candidate_rows.append(record)
+
+combined_df = pd.concat([train_df, val_df], axis=0).reset_index(drop=True)
+final_result = fit_sarimax(combined_df[TARGET], combined_df[feature_cols], final_candidate)
+```
+
+#### Mënyra e parashikimit
+
+Parashikimi në test set është kryer me qasje `state_space_one_step_ahead`, pra modeli ecën hap pas hapi në kohë duke përditësuar gjendjen e tij. Kjo është një mënyrë shumë e përshtatshme për një problem real forecast-imi.
+
+Për secilin timestamp në test ruhen:
+
+- vlera reale e `PM2.5`,
+- parashikimi i modelit,
+- kufiri i poshtëm i intervalit,
+- kufiri i sipërm i intervalit,
+- dhe residual-i.
+
+#### Rezultatet e raportuara
+
+Në `validation` modeli ka arritur:
+
+- `MAE = 1.3354`
+- `RMSE = 2.0431`
+- `MAPE = 19.12%`
+- `SMAPE = 17.96%`
+- `R² = 0.7140`
+
+Në `test` modeli ka arritur:
+
+- `MAE = 3.1125`
+- `RMSE = 4.7654`
+- `MAPE = 28.01%`
+- `SMAPE = 25.47%`
+- `R² = 0.7748`
+
+Gjithashtu janë ruajtur edhe metrika shtesë të modelit statistik:
+
+- `AIC = 9795.08`
+- `BIC = 9899.73`
+
+Këto rezultate e bëjnë `SARIMAX` një model shumë serioz dhe të balancuar për raportim akademik: ai është më i interpretueshëm sesa boosting methods dhe njëkohësisht jep performancë të mirë në të dhëna reale.
+
+#### Interpretimi i koeficientëve
+
+Nga `data/sarimax_coefficients.csv`, koeficientët më domethënës janë:
+
+- `ar.L1 = 0.8815`, që tregon memorje të fortë autoregresive të `PM2.5`;
+- `ar.S.L24 = 0.7981`, që konfirmon sezonalitetin ditor 24-orësh;
+- `ma.S.L24 = -0.5190`, që tregon korrigjim sezonal në komponentin e gabimit;
+- `hour_sin = 0.3071` dhe `hour_cos = 0.1411`, që tregojnë ndikim të qartë të ciklit ditor;
+- `temperature_2m (°C) = 0.0985`, që ka dalë pozitiv dhe statistikisht i rëndësishëm;
+- `wind_x_vector = -0.0287`, që sugjeron efekt shpërndarës të erës në një nga komponentët e saj.
+
+Në aspekt interpretimi, këto vlera tregojnë se:
+
+- `PM2.5` në Prishtinë ka inercion të fortë kohor;
+- ekziston një ritëm i qartë ditor në nivelin e ndotjes;
+- dhe moti nuk vepron i izoluar, por si modulator mbi një proces që tashmë ka kujtesë atmosferike.
+
+#### Vizualizimet
+
+Grafiku kryesor i parashikimit:
+
+![SARIMAX Actual vs Predicted](pictures/sarimax_model/sarimax_actual_vs_predicted.png)
+
+Diagnostika e residualeve:
+
+![SARIMAX Residual Diagnostics](pictures/sarimax_model/sarimax_residual_diagnostics.png)
+
+Përveç figurave statike, është ruajtur edhe vizualizimi interaktiv:
+
+- `pictures/sarimax_model/sarimax_forecast_interactive.html`
+
+#### Artefaktet e gjeneruara nga SARIMAX
+
+Skripta ruan këto output-e:
+
+- `data/sarimax_forecasts.csv`
+  Parashikimet në test set, intervalet e besimit dhe residuals.
+
+- `data/sarimax_metrics.csv`
+  Metrikat në validation dhe test, si dhe AIC/BIC.
+
+- `data/sarimax_coefficients.csv`
+  Koeficientët finalë dhe p-value-t për secilin parametër.
+
+- `data/sarimax_candidate_results.csv`
+  Krahasimi i konfigurimeve kandidate gjatë model selection.
+
+- `data/sarimax_split_summary.csv`
+  Përmbledhja e ndarjes kronologjike.
+
+- `data/sarimax_residuals.csv`
+  Residuals në njësinë reale të `PM2.5`.
+
+- `data/sarimax_run_info.json`
+  Konfigurimi i plotë i ekzekutimit dhe rrugët e output-eve.
+
+- `models/sarimax_model/sarimax_pm25_model.pkl`
+  Modeli final i trajnuar.
+
+- `models/sarimax_model/sarimax_summary.txt`
+  Përmbledhja statistikore e `statsmodels`.
+
+- `models/sarimax_model/sarimax_feature_columns.pkl`
+  Lista e feature-ave exogenous të përdorura.
+
+- `pictures/sarimax_model/sarimax_actual_vs_predicted.png`
+- `pictures/sarimax_model/sarimax_residual_diagnostics.png`
+- `pictures/sarimax_model/sarimax_forecast_interactive.html`
+
+---
+
 ### HDBSCAN për analizë unsupervised
 
 Për analizën unsupervised është përdorur `HDBSCAN`, një algoritëm clustering i bazuar në densitet, i cili nuk kërkon përcaktim paraprak të numrit të cluster-ëve dhe është shumë i përshtatshëm për të dhëna reale me shape të parregullt, densitete të ndryshme dhe presence të outlier-ave.
@@ -2021,39 +2305,310 @@ Ky vizualizim lejon:
 
 ---
 
+### Gaussian Mixture për analizë unsupervised
+
+Përveç `HDBSCAN`, në këtë projekt është implementuar edhe `Gaussian Mixture Model (GMM)`, një metodë probabilistike clustering që modelon të dhënat si kombinim i disa shpërndarjeve Gaussiane.
+
+Kjo qasje është shumë e vlefshme në kontekstin tonë, sepse kushtet atmosferike dhe regjimet e ndotjes nuk janë gjithmonë të ndara në cluster-a të prerë fort. Shpesh kemi profile që mbivendosen, dhe `GMM` e kap pikërisht këtë me:
+
+- anëtarësim probabilistik në cluster,
+- fleksibilitet në forma eliptike të shpërndarjes,
+- dhe interpretim të regjimeve mjedisore si profile të buta, jo si ndarje strikte.
+
+Implementimi ndodhet në:
+
+- `src/phase_2/gaussian_mixture_model/gaussian_mixture_model.py`
+
+#### Pse Gaussian Mixture?
+
+`Gaussian Mixture` është zgjedhur sepse:
+
+- jep soft clustering, jo vetëm etiketim të fortë;
+- është shumë i përshtatshëm kur profilet mjedisore mbivendosen pjesërisht;
+- lejon krahasim formal modelesh me `BIC` dhe `AIC`;
+- dhe shërben si kundërpeshë metodologjike ndaj `HDBSCAN`, i cili është density-based.
+
+Nga pikëpamja akademike, kjo e forcon shumë projektin, sepse demonstron dy filozofi të ndryshme unsupervised:
+
+- një qasje me densitet dhe noise handling (`HDBSCAN`);
+- dhe një qasje probabilistike me model-based clustering (`Gaussian Mixture`).
+
+#### Input
+
+Ashtu si te `SARIMAX`, skripta kontrollon dy lokacione të mundshme:
+
+- `data/4E_selected_dataset.csv`
+- `data/phase_1/4E_selected_dataset.csv`
+
+Në ekzekutimin aktual është përdorur:
+
+- `data/phase_1/4E_selected_dataset.csv`
+
+#### Feature-at e përdorura për clustering
+
+Modeli është trajnuar mbi 12 feature-a numerike:
+
+- `hour_sin`
+- `hour_cos`
+- `month_sin`
+- `month_cos`
+- `pollution_stagnation_index`
+- `wind_x_vector`
+- `wind_y_vector`
+- `total_generation_mw`
+- `temperature_2m (°C)`
+- `rain (mm)`
+- `relative_humidity_2m (%)`
+- `wind_speed_10m (km/h)`
+
+Është shumë e rëndësishme të theksohet se:
+
+- `pm25` nuk përdoret si input për të ndërtuar cluster-at;
+- `pm25` përdoret vetëm pas trajnimit për interpretim post-hoc, përmes kolonës `pm25_real`.
+
+Kjo e bën analizën më të pastër metodologjikisht: cluster-at nuk “detyrohen” të formohen sipas target-it, por më pas kontrollohet si sillet `PM2.5` brenda secilit regjim të zbuluar.
+
+#### Fragment kyç i kodit: konfigurimi i feature-ave dhe kandidatëve
+
+```python
+PCA_VARIANCE_THRESHOLD = 0.95
+N_COMPONENT_CANDIDATES = [2, 3, 4, 5, 6]
+COVARIANCE_TYPES = ["full", "diag", "tied"]
+MIN_CLUSTER_RATIO = 0.05
+
+FEATURE_PRIORITY = [
+    "hour_sin",
+    "hour_cos",
+    "month_sin",
+    "month_cos",
+    "pollution_stagnation_index",
+    "wind_x_vector",
+    "wind_y_vector",
+    "total_generation_mw",
+    "temperature_2m (°C)",
+    "rain (mm)",
+    "relative_humidity_2m (%)",
+    "wind_speed_10m (km/h)",
+]
+```
+
+#### Standardizimi dhe PCA
+
+Para clustering-ut, tiparet standardizohen me `StandardScaler`, që asnjë kolonë me shkallë më të madhe të mos dominojë modelin.
+
+Më pas aplikohet `PCA` me prag:
+
+- `explained variance >= 95%`
+
+Në ekzekutimin aktual kjo ka dhënë:
+
+- `12` feature-a hyrëse
+- `9` PCA components
+- `97.12%` explained variance
+
+Kjo do të thotë se reduktimi dimensional e ruan pothuajse të gjithë informacionin kryesor, ndërsa e bën clustering-un më stabil dhe më të lehtë për vizualizim.
+
+#### Fragment kyç i kodit: scaling dhe PCA
+
+```python
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(df[feature_cols].to_numpy(dtype=float))
+
+pca = PCA(n_components=PCA_VARIANCE_THRESHOLD, svd_solver="full")
+X_pca = pca.fit_transform(X_scaled)
+```
+
+#### Përzgjedhja e modelit final
+
+Përzgjedhja e modelit është bërë në mënyrë të strukturuar, duke testuar kombinime të:
+
+- `n_components = 2, 3, 4, 5, 6`
+- `covariance_type = full, diag, tied`
+
+Për secilin kandidat janë llogaritur:
+
+- `BIC`
+- `AIC`
+- `silhouette_score`
+- `davies_bouldin_score`
+- `calinski_harabasz_score`
+- `min_cluster_ratio`
+- `avg_cluster_confidence`
+
+Një kandidat konsiderohet valid për zgjedhje finale vetëm nëse:
+
+- `min_cluster_ratio >= 0.05`
+
+Modeli final zgjidhet kryesisht sipas `BIC` më të ulët, dhe në rast afërsie përdoret `silhouette_score` si kriter dytësor.
+
+Konfigurimi më i mirë në këtë repo ka dalë:
+
+- `n_components = 6`
+- `covariance_type = "full"`
+
+#### Fragment kyç i kodit: logjika e model selection
+
+```python
+if row["min_cluster_ratio"] < MIN_CLUSTER_RATIO:
+    continue
+
+if best_row is None:
+    best_row = row
+    continue
+
+if row["bic"] < best_row["bic"] - 1e-9:
+    best_row = row
+    continue
+
+if np.isclose(row["bic"], best_row["bic"]) and row["silhouette_score"] > best_row["silhouette_score"]:
+    best_row = row
+```
+
+#### Rezultatet e raportuara
+
+Në konfigurimin final janë marrë këto rezultate:
+
+- `Rows used = 9347`
+- `Number of clusters = 6`
+- `Covariance type = full`
+- `BIC = 154996.08`
+- `AIC = 152646.10`
+- `Silhouette score = 0.0899`
+- `Davies-Bouldin score = 2.0751`
+- `Calinski-Harabasz score = 950.04`
+- `Min cluster ratio = 0.1128`
+- `Max cluster ratio = 0.2679`
+- `Average cluster confidence = 0.9688`
+
+Këtu vlen një interpretim i kujdesshëm akademik:
+
+- `silhouette_score` është relativisht i ulët, që tregon se cluster-at nuk janë të ndarë në mënyrë shumë të fortë;
+- kjo është normale për të dhëna reale mjedisore, ku regjimet atmosferike shpesh mbivendosen;
+- ndërkohë, `avg_cluster_confidence = 0.9688` dhe raportet e balancuara të cluster-ëve tregojnë se modeli po prodhon ndarje të përdorshme dhe të qëndrueshme.
+
+Pra, te `GMM` nuk duhet parë vetëm silhouette, por kombinimi i:
+
+- `BIC/AIC`,
+- balancës së cluster-ëve,
+- probabiliteteve të anëtarësimit,
+- dhe interpretueshmërisë së profileve të gjetura.
+
+#### Interpretimi i cluster-ëve
+
+Nga `data/gmm_cluster_summary.csv` dhe `data/gmm_feature_summary.csv`, dalin disa profile shumë interesante:
+
+- `Cluster 3` është regjimi me ndotjen mesatare më të lartë:
+  - `pm25_real_mean = 17.51`
+  - lidhet me temperaturë nën mesatare, lagështi më të lartë, prodhim energjie më të lartë dhe stagnation mbi mesatare.
+
+- `Cluster 0` paraqet kushte më të pastra dhe më të ajrosura:
+  - `pm25_real_mean = 7.56`
+  - ka komponentë më të fortë të erës dhe stagnation më të ulët.
+
+- `Cluster 5` përfaqëson regjim të lidhur me reshje:
+  - `pm25_real_mean = 8.15`
+  - `rain (mm)` është feature-i më devijues pozitiv në këtë cluster.
+
+Kjo do të thotë se `Gaussian Mixture` nuk po ndan të dhënat vetëm sipas një variable të vetme, por po zbulon regjime mjedisore me kombinime të ndryshme të:
+
+- stinës,
+- orës së ditës,
+- reshjeve,
+- stagnation-it atmosferik,
+- erës,
+- dhe intensitetit të prodhimit energjetik.
+
+#### Vizualizimet
+
+Krahasimi i kandidatëve gjatë model selection:
+
+![GMM Model Selection](pictures/gaussian_mixture_model/gmm_model_selection.png)
+
+Heatmap-i i profileve të cluster-ëve:
+
+![GMM Cluster Profile Heatmap](pictures/gaussian_mixture_model/gmm_cluster_profile_heatmap.png)
+
+Vizualizimi interaktiv në hapësirën e reduktuar me `PCA` ruhet në:
+
+- `pictures/gaussian_mixture_model/gmm_pca_interactive.html`
+
+#### Artefaktet e gjeneruara nga Gaussian Mixture
+
+Skripta ruan këto output-e:
+
+- `data/gmm_clustered_dataset.csv`
+  Dataset-i me etiketat e cluster-it, probabilitetet e anëtarësimit dhe koordinatat `PCA`.
+
+- `data/gmm_metrics.csv`
+  Përmbledhja e metrikave finale të clustering-ut.
+
+- `data/gmm_cluster_summary.csv`
+  Statistika për secilin cluster, përfshirë `pm25_real_mean`.
+
+- `data/gmm_feature_summary.csv`
+  Feature-at që dallojnë më së shumti secilin cluster nga mesatarja globale.
+
+- `data/gmm_model_selection.csv`
+  Tabela e plotë e kandidatëve të testuar.
+
+- `data/gmm_run_info.json`
+  Informacioni i konfigurimit dhe rrugët e output-eve.
+
+- `models/gaussian_mixture_model/gmm_model.pkl`
+  Modeli final i trajnuar.
+
+- `models/gaussian_mixture_model/gmm_scaler.pkl`
+  Scaler-i i përdorur për standardizim.
+
+- `models/gaussian_mixture_model/gmm_pca.pkl`
+  Objekti `PCA` i ruajtur.
+
+- `models/gaussian_mixture_model/gmm_feature_columns.pkl`
+  Lista e feature-ave të përdorura.
+
+- `pictures/gaussian_mixture_model/gmm_model_selection.png`
+- `pictures/gaussian_mixture_model/gmm_cluster_profile_heatmap.png`
+- `pictures/gaussian_mixture_model/gmm_pca_interactive.html`
+
+---
+
 ### Metrikat dhe interpretimi i rezultateve
 
 Në këtë fazë janë përdorur dy nivele interpretimi:
 
 #### 1. Interpretimi supervised
 
-Te `CatBoost`, interpretimi bazohet në:
+Te modelet supervised (`CatBoost`, `LightGBM`, `SARIMAX`), interpretimi bazohet në:
 
 - metrikat e regresionit,
 - krahasimin ndërmjet vlerave reale dhe të parashikuara,
 - residuals,
-- dhe rëndësinë e feature-ave.
+- rëndësinë e feature-ave,
+- dhe, në rastin e `SARIMAX`, edhe koeficientët statistikorë, `AIC/BIC` dhe diagnostikën e residualeve.
 
 Kjo ndihmon në kuptimin se:
 
 - sa mirë modeli e parashikon `PM2.5`,
 - cilat tipare ndikojnë më shumë në parashikim,
-- dhe sa e qëndrueshme është performanca në test set.
+- sa i fortë është komponenti kohor dhe sezonal,
+- dhe sa e qëndrueshme është performanca në validation dhe test set.
 
 #### 2. Interpretimi unsupervised
 
-Te `HDBSCAN`, interpretimi bazohet në:
+Te modelet unsupervised (`HDBSCAN` dhe `Gaussian Mixture`), interpretimi bazohet në:
 
 - numrin dhe përmasat e cluster-ëve,
 - pikat noise,
 - probabilitetet e anëtarësimit në cluster,
 - outlier scores,
+- `BIC/AIC` te modelet probabilistike,
 - dhe përmbledhjet statistikore të feature-ave sipas cluster-it.
 
 Kjo ndihmon për të kuptuar:
 
 - nëse të dhënat ndahen në profile natyrore,
 - nëse ekzistojnë regjime të ndryshme të ndotjes,
+- sa të ndara apo të mbivendosura janë këto regjime,
 - dhe cilat kombinime të motit dhe energjisë shfaqin sjellje të ngjashme.
 
 ---
@@ -2085,6 +2640,38 @@ Pas fazës së dytë të projektit, përveç output-eve të pipeline-it të për
 - `models/hdbscan_model/hdbscan_umap.pkl`
 - `pictures/hdbscan_model/hdbscan_umap_interactive.html`
 - `pictures/hdbscan_model/hdbscan_umap_interactive.png`
+
+#### SARIMAX
+
+- `data/sarimax_forecasts.csv`
+- `data/sarimax_metrics.csv`
+- `data/sarimax_coefficients.csv`
+- `data/sarimax_candidate_results.csv`
+- `data/sarimax_split_summary.csv`
+- `data/sarimax_residuals.csv`
+- `data/sarimax_run_info.json`
+- `models/sarimax_model/sarimax_pm25_model.pkl`
+- `models/sarimax_model/sarimax_summary.txt`
+- `models/sarimax_model/sarimax_feature_columns.pkl`
+- `pictures/sarimax_model/sarimax_actual_vs_predicted.png`
+- `pictures/sarimax_model/sarimax_residual_diagnostics.png`
+- `pictures/sarimax_model/sarimax_forecast_interactive.html`
+
+#### Gaussian Mixture
+
+- `data/gmm_clustered_dataset.csv`
+- `data/gmm_metrics.csv`
+- `data/gmm_cluster_summary.csv`
+- `data/gmm_feature_summary.csv`
+- `data/gmm_model_selection.csv`
+- `data/gmm_run_info.json`
+- `models/gaussian_mixture_model/gmm_model.pkl`
+- `models/gaussian_mixture_model/gmm_scaler.pkl`
+- `models/gaussian_mixture_model/gmm_pca.pkl`
+- `models/gaussian_mixture_model/gmm_feature_columns.pkl`
+- `pictures/gaussian_mixture_model/gmm_model_selection.png`
+- `pictures/gaussian_mixture_model/gmm_cluster_profile_heatmap.png`
+- `pictures/gaussian_mixture_model/gmm_pca_interactive.html`
 
 ---
 
@@ -2118,6 +2705,35 @@ Ky vizualizim ruhet në:
 
 - `pictures/hdbscan_model/hdbscan_umap_interactive.html`
 
+#### Vizualizimi i SARIMAX
+
+Vizualizimi i `SARIMAX` është ndërtuar për të paraqitur:
+
+- serinë reale të `PM2.5`,
+- parashikimin në `test set`,
+- intervalet e besimit,
+- si dhe diagnostikën e residualeve në formë statike.
+
+Artefaktet kryesore të vizualizimit janë:
+
+- `pictures/sarimax_model/sarimax_forecast_interactive.html`
+- `pictures/sarimax_model/sarimax_actual_vs_predicted.png`
+- `pictures/sarimax_model/sarimax_residual_diagnostics.png`
+
+#### Vizualizimi i Gaussian Mixture
+
+Vizualizimi i `Gaussian Mixture` është ndërtuar për të paraqitur:
+
+- cluster-at probabilistikë në hapësirën e reduktuar me `PCA`,
+- krahasimin e kandidatëve gjatë model selection,
+- dhe profilet mesatare të cluster-ëve përmes heatmap-it.
+
+Artefaktet kryesore të vizualizimit janë:
+
+- `pictures/gaussian_mixture_model/gmm_pca_interactive.html`
+- `pictures/gaussian_mixture_model/gmm_model_selection.png`
+- `pictures/gaussian_mixture_model/gmm_cluster_profile_heatmap.png`
+
 ---
 
 ### Rezultati i zgjeruar i pipeline-it
@@ -2129,7 +2745,10 @@ Rezultati final përfshin:
 - një dataset të integruar, të pastruar, të validuar dhe të transformuar;
 - një subset final tiparesh të përshtatshme për modelim;
 - një model supervised `CatBoostRegressor` për parashikimin e `PM2.5`;
+- një model supervised `LightGBM` për benchmark dhe analizë me lag features;
+- një model supervised `SARIMAX` për forecast kohor të interpretueshëm statistikisht;
 - një model unsupervised `HDBSCAN` për clustering dhe outlier analysis;
+- një model unsupervised `Gaussian Mixture` për identifikimin probabilistik të regjimeve mjedisore;
 - artefakte të metrikave, parashikimeve, cluster-ëve dhe rëndësisë së tipareve;
 - si dhe vizualizime interaktive për interpretim më të qartë të rezultateve.
 
