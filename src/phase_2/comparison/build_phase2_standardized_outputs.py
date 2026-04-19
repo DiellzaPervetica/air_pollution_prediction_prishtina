@@ -4,6 +4,7 @@ import json
 import math
 import re
 import shutil
+import textwrap
 from pathlib import Path
 
 import joblib
@@ -139,13 +140,32 @@ def parse_lightgbm_metrics(text_path: Path) -> dict[str, float]:
     }
 
 
-def save_table_image(df: pd.DataFrame, output_path: Path, title: str) -> None:
+def save_table_image(
+    df: pd.DataFrame,
+    output_path: Path,
+    title: str,
+    wrap_columns: list[str] | None = None,
+) -> None:
     display_df = df.copy()
     for column in display_df.columns:
-        if pd.api.types.is_float_dtype(display_df[column]):
-            display_df[column] = display_df[column].map(lambda x: "" if pd.isna(x) else f"{x:.4f}")
+        if pd.api.types.is_numeric_dtype(display_df[column]):
+            display_df[column] = display_df[column].map(lambda x: "N/A" if pd.isna(x) else f"{x:.4f}")
+        else:
+            display_df[column] = display_df[column].map(lambda x: "N/A" if pd.isna(x) or str(x).strip() == "" else str(x))
 
-    fig, ax = plt.subplots(figsize=(max(8, len(display_df.columns) * 1.3), max(2.5, len(display_df) * 0.7 + 1.2)))
+    for column in wrap_columns or []:
+        if column in display_df.columns:
+            display_df[column] = display_df[column].map(lambda value: textwrap.fill(str(value), width=18))
+
+    column_weights = []
+    for column in display_df.columns:
+        max_cell_len = int(display_df[column].astype(str).map(len).max()) if len(display_df) else len(str(column))
+        column_weights.append(max(len(str(column)), max_cell_len, 8))
+
+    fig_width = max(10, sum(column_weights) * 0.16)
+    fig_height = max(3.0, len(display_df) * 0.95 + 1.8)
+
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
     ax.axis("off")
     table = ax.table(
         cellText=display_df.values,
@@ -153,9 +173,18 @@ def save_table_image(df: pd.DataFrame, output_path: Path, title: str) -> None:
         cellLoc="center",
         loc="center",
     )
+
+    total_weight = float(sum(column_weights))
+    for col_idx, weight in enumerate(column_weights):
+        col_width = 0.96 * (weight / total_weight)
+        for row_idx in range(len(display_df) + 1):
+            cell = table[(row_idx, col_idx)]
+            cell.set_width(col_width)
+            cell.get_text().set_wrap(True)
+
     table.auto_set_font_size(False)
-    table.set_fontsize(9)
-    table.scale(1, 1.4)
+    table.set_fontsize(8.5)
+    table.scale(1, 1.8)
     ax.set_title(title, fontsize=13, pad=18)
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
@@ -227,6 +256,242 @@ def save_cluster_profile_plot(df: pd.DataFrame, label_col: str, value_col: str, 
     plt.close()
 
 
+def save_ranked_bar_plot(
+    df: pd.DataFrame,
+    label_col: str,
+    value_col: str,
+    output_path: Path,
+    title: str,
+    top_n: int = 10,
+    color: str = "#72B7B2",
+) -> None:
+    plot_df = df[[label_col, value_col]].copy().dropna()
+    if plot_df.empty:
+        return
+
+    plot_df = plot_df.sort_values(value_col, ascending=False).head(top_n).iloc[::-1]
+
+    plt.figure(figsize=(8.5, max(4.5, len(plot_df) * 0.55)))
+    sns.barplot(data=plot_df, x=value_col, y=label_col, color=color)
+    plt.title(title)
+    plt.xlabel(value_col)
+    plt.ylabel("")
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+
+def prepare_time_plot_df(df: pd.DataFrame) -> pd.DataFrame:
+    plot_df = df.copy()
+    time_col = next((column for column in ["timestamp", "datetime", "date"] if column in plot_df.columns), None)
+    if time_col is None:
+        return pd.DataFrame()
+
+    plot_df["plot_time"] = pd.to_datetime(plot_df[time_col], errors="coerce")
+    plot_df = plot_df.dropna(subset=["plot_time"]).sort_values("plot_time").reset_index(drop=True)
+    return plot_df
+
+
+def ordered_group_labels(values: pd.Series) -> list[str]:
+    labels = [str(value) for value in values.dropna().astype(str).unique().tolist()]
+
+    def sort_key(label: str) -> tuple[int, int | str]:
+        label_lower = label.lower()
+        if label_lower == "noise":
+            return (0, -1)
+
+        match = re.search(r"(-?\d+)", label_lower)
+        if match:
+            return (1, int(match.group(1)))
+
+        return (2, label_lower)
+
+    return sorted(labels, key=sort_key)
+
+
+def build_group_palette(labels: list[str]) -> dict[str, tuple[float, float, float] | str]:
+    non_noise_labels = [label for label in labels if label.lower() != "noise"]
+    base_palette = sns.color_palette("tab10", n_colors=max(3, len(non_noise_labels)))
+    palette: dict[str, tuple[float, float, float] | str] = {}
+
+    for label, color in zip(non_noise_labels, base_palette):
+        palette[label] = color
+
+    if any(label.lower() == "noise" for label in labels):
+        palette["Noise"] = "#D62728"
+
+    return palette
+
+
+def save_group_boxplot(
+    df: pd.DataFrame,
+    group_col: str,
+    value_col: str,
+    output_path: Path,
+    title: str,
+) -> None:
+    if group_col not in df.columns or value_col not in df.columns:
+        return
+
+    plot_df = df[[group_col, value_col]].copy().dropna()
+    if plot_df.empty:
+        return
+
+    plot_df[group_col] = plot_df[group_col].astype(str)
+    order = ordered_group_labels(plot_df[group_col])
+    palette = build_group_palette(order)
+
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(
+        data=plot_df,
+        x=group_col,
+        y=value_col,
+        hue=group_col,
+        order=order,
+        palette=palette,
+        showfliers=False,
+        dodge=False,
+        legend=False,
+    )
+    plt.title(title)
+    plt.xlabel("")
+    plt.ylabel(value_col)
+    plt.xticks(rotation=15)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+
+def save_group_timeline_plot(
+    df: pd.DataFrame,
+    group_col: str,
+    value_col: str,
+    output_path: Path,
+    title: str,
+    tail_rows: int = 1800,
+) -> None:
+    plot_df = prepare_time_plot_df(df)
+    if plot_df.empty or value_col not in plot_df.columns or group_col not in plot_df.columns:
+        return
+
+    plot_df = plot_df.dropna(subset=[value_col, group_col]).tail(min(tail_rows, len(plot_df))).copy()
+    if plot_df.empty:
+        return
+
+    plot_df[group_col] = plot_df[group_col].astype(str)
+    order = ordered_group_labels(plot_df[group_col])
+    palette = build_group_palette(order)
+
+    plt.figure(figsize=(15, 6))
+    plt.plot(
+        plot_df["plot_time"],
+        plot_df[value_col],
+        color="#B0B7C3",
+        linewidth=1.2,
+        alpha=0.9,
+        label="PM2.5 baseline",
+    )
+    sns.scatterplot(
+        data=plot_df,
+        x="plot_time",
+        y=value_col,
+        hue=group_col,
+        hue_order=order,
+        palette=palette,
+        s=18,
+        alpha=0.85,
+        linewidth=0,
+    )
+    plt.title(title)
+    plt.xlabel("Time")
+    plt.ylabel(value_col)
+    plt.legend(title="", bbox_to_anchor=(1.02, 1), loc="upper left")
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+
+def save_group_scatter_plot(
+    df: pd.DataFrame,
+    x_col: str,
+    y_col: str,
+    group_col: str,
+    output_path: Path,
+    title: str,
+    max_points: int = 3500,
+) -> None:
+    plot_df = df[[x_col, y_col, group_col]].copy().dropna()
+    if plot_df.empty:
+        return
+
+    if len(plot_df) > max_points:
+        plot_df = plot_df.sample(n=max_points, random_state=42)
+
+    plot_df[group_col] = plot_df[group_col].astype(str)
+    order = ordered_group_labels(plot_df[group_col])
+    palette = build_group_palette(order)
+
+    plt.figure(figsize=(10.5, 8))
+    sns.scatterplot(
+        data=plot_df,
+        x=x_col,
+        y=y_col,
+        hue=group_col,
+        hue_order=order,
+        palette=palette,
+        s=28,
+        alpha=0.65,
+        linewidth=0.2,
+    )
+    plt.title(title)
+    plt.xlabel(x_col)
+    plt.ylabel(y_col)
+    plt.legend(title="", bbox_to_anchor=(1.02, 1), loc="upper left")
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+
+def save_distribution_plot(
+    df: pd.DataFrame,
+    score_col: str,
+    group_col: str,
+    output_path: Path,
+    title: str,
+    max_groups: int = 8,
+) -> None:
+    plot_df = df[[score_col, group_col]].copy().dropna()
+    if plot_df.empty:
+        return
+
+    plot_df[group_col] = plot_df[group_col].astype(str)
+    order = ordered_group_labels(plot_df[group_col])
+    if len(order) > max_groups:
+        order = order[:max_groups]
+        plot_df = plot_df[plot_df[group_col].isin(order)].copy()
+
+    palette = build_group_palette(order)
+
+    plt.figure(figsize=(10, 6))
+    sns.histplot(
+        data=plot_df,
+        x=score_col,
+        hue=group_col,
+        hue_order=order,
+        palette=palette,
+        bins=50,
+        stat="density",
+        common_norm=False,
+        element="step",
+        fill=False,
+    )
+    plt.title(title)
+    plt.xlabel(score_col)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+
 def aggregate_feature_summary(df: pd.DataFrame, feature_col: str = "feature", value_col: str = "absolute_difference") -> pd.DataFrame:
     grouped = df.groupby(feature_col, as_index=False)[value_col].max()
     return grouped.sort_values(value_col, ascending=False).reset_index(drop=True)
@@ -275,16 +540,29 @@ def process_lightgbm_improved() -> tuple[dict[str, object], pd.DataFrame]:
         model_plot_dir,
     )
 
-    manifest = {
-        "name": "LightGBM Improved",
-        "source_dir": str(source_dir),
-        "phase2_data_dir": str(model_data_dir),
-        "phase2_plot_dir": str(model_plot_dir),
-        "copied_data_files": copied_data,
-        "copied_plot_files": copied_plots,
-    }
-    with open(model_data_dir / "artifact_manifest.json", "w", encoding="utf-8") as file:
-        json.dump(manifest, file, indent=2)
+    safe_copy(source_dir / "actual_vs_predicted.png", model_plot_dir / "lightgbm_actual_vs_predicted.png")
+    safe_copy(source_dir / "feature_importance.png", model_plot_dir / "lightgbm_feature_importance.png")
+    safe_copy(source_dir / "learning_curve.png", model_plot_dir / "lightgbm_learning_curve.png")
+
+    lightgbm_metrics_table = pd.DataFrame(
+        [
+            {
+                "Model": metrics_row["model"],
+                "Eval Strategy": metrics_row["evaluation_strategy"],
+                "MAE": metrics_row["MAE"],
+                "RMSE": metrics_row["RMSE"],
+                "R2": metrics_row["R2"],
+                "MAPE (%)": np.nan,
+                "SMAPE (%)": np.nan,
+            }
+        ]
+    )
+    save_table_image(
+        lightgbm_metrics_table,
+        model_plot_dir / "lightgbm_metrics_table.png",
+        "LightGBM metrics summary",
+        wrap_columns=["Eval Strategy"],
+    )
 
     return metrics_row, feature_std[["feature", "importance_pct"]]
 
@@ -358,20 +636,34 @@ def process_catboost(scaler) -> tuple[dict[str, object], pd.DataFrame]:
         model_plot_dir,
     )
 
-    manifest = {
-        "name": "CatBoost",
-        "source_data": [
-            str(model_data_dir / "catboost_forecasts.csv"),
-            str(model_data_dir / "catboost_metrics.csv"),
-            str(model_data_dir / "catboost_feature_importance.csv"),
-        ],
-        "phase2_data_dir": str(model_data_dir),
-        "phase2_plot_dir": str(model_plot_dir),
-        "copied_data_files": copied_data,
-        "copied_plot_files": copied_plots,
-    }
-    with open(model_data_dir / "artifact_manifest.json", "w", encoding="utf-8") as file:
-        json.dump(manifest, file, indent=2)
+    save_ranked_bar_plot(
+        feature_std,
+        "feature",
+        "importance_pct",
+        model_plot_dir / "catboost_feature_importance.png",
+        "CatBoost feature importance",
+        top_n=10,
+        color="#4C78A8",
+    )
+    catboost_metrics_table = pd.DataFrame(
+        [
+            {
+                "Model": metrics_row["model"],
+                "Eval Strategy": metrics_row["evaluation_strategy"],
+                "MAE": metrics_row["MAE"],
+                "RMSE": metrics_row["RMSE"],
+                "R2": metrics_row["R2"],
+                "MAPE (%)": metrics_row["MAPE_pct"],
+                "SMAPE (%)": metrics_row["SMAPE_pct"],
+            }
+        ]
+    )
+    save_table_image(
+        catboost_metrics_table,
+        model_plot_dir / "catboost_metrics_table.png",
+        "CatBoost metrics summary",
+        wrap_columns=["Eval Strategy"],
+    )
 
     return metrics_row, feature_std[["feature", "importance_pct"]]
 
@@ -424,20 +716,34 @@ def process_sarimax() -> tuple[dict[str, object], pd.DataFrame]:
         model_plot_dir,
     )
 
-    manifest = {
-        "name": "SARIMAX",
-        "source_data": [
-            str(model_data_dir / "sarimax_forecasts.csv"),
-            str(model_data_dir / "sarimax_metrics.csv"),
-            str(model_data_dir / "sarimax_coefficients.csv"),
-        ],
-        "phase2_data_dir": str(model_data_dir),
-        "phase2_plot_dir": str(model_plot_dir),
-        "copied_data_files": copied_data,
-        "copied_plot_files": copied_plots,
-    }
-    with open(model_data_dir / "artifact_manifest.json", "w", encoding="utf-8") as file:
-        json.dump(manifest, file, indent=2)
+    save_ranked_bar_plot(
+        coeff_std.rename(columns={"effect_strength": "effect_strength"}),
+        "feature",
+        "effect_strength",
+        model_plot_dir / "sarimax_coefficients.png",
+        "SARIMAX coefficient strengths",
+        top_n=10,
+        color="#E45756",
+    )
+    sarimax_metrics_table = pd.DataFrame(
+        [
+            {
+                "Model": metrics_row["model"],
+                "Eval Strategy": metrics_row["evaluation_strategy"],
+                "MAE": metrics_row["MAE"],
+                "RMSE": metrics_row["RMSE"],
+                "R2": metrics_row["R2"],
+                "MAPE (%)": metrics_row["MAPE_pct"],
+                "SMAPE (%)": metrics_row["SMAPE_pct"],
+            }
+        ]
+    )
+    save_table_image(
+        sarimax_metrics_table,
+        model_plot_dir / "sarimax_metrics_table.png",
+        "SARIMAX metrics summary",
+        wrap_columns=["Eval Strategy"],
+    )
 
     return metrics_row, coeff_std[["feature", "effect_strength"]]
 
@@ -455,6 +761,18 @@ def process_hdbscan(scaler) -> tuple[dict[str, object], pd.DataFrame, pd.DataFra
 
     if "pm25_real" not in clustered.columns and TARGET in clustered.columns:
         clustered["pm25_real"] = inverse_scale_feature(clustered[TARGET], scaler, TARGET)
+    if "total_generation_mw_real" not in clustered.columns and "total_generation_mw" in clustered.columns:
+        clustered["total_generation_mw_real"] = inverse_scale_feature(
+            clustered["total_generation_mw"], scaler, "total_generation_mw"
+        )
+    if "timestamp" not in clustered.columns and "datetime" in clustered.columns:
+        clustered["timestamp"] = clustered["datetime"]
+    if "cluster_label" in clustered.columns:
+        clustered["cluster_group"] = np.where(
+            clustered["cluster_label"] == -1,
+            "Noise",
+            "Cluster " + clustered["cluster_label"].astype(int).astype(str),
+        )
 
     if "pm25_real_mean" not in cluster_summary.columns and "pm25_real" in clustered.columns:
         cluster_summary = (
@@ -510,33 +828,117 @@ def process_hdbscan(scaler) -> tuple[dict[str, object], pd.DataFrame, pd.DataFra
         model_plot_dir,
     )
 
-    manifest = {
-        "name": "HDBSCAN",
-        "source_data": [
-            str(model_data_dir / "hdbscan_clustered_dataset.csv"),
-            str(model_data_dir / "hdbscan_metrics.csv"),
-            str(model_data_dir / "hdbscan_feature_summary.csv"),
-        ],
-        "phase2_data_dir": str(model_data_dir),
-        "phase2_plot_dir": str(model_plot_dir),
-        "copied_data_files": copied_data,
-        "copied_plot_files": copied_plots,
-    }
-    with open(model_data_dir / "artifact_manifest.json", "w", encoding="utf-8") as file:
-        json.dump(manifest, file, indent=2)
+    hdbscan_cluster_sizes = cluster_summary[cluster_summary["cluster_label"] != -1][["cluster_label", "count"]].copy()
+    if not hdbscan_cluster_sizes.empty:
+        save_cluster_profile_plot(
+            hdbscan_cluster_sizes,
+            "cluster_label",
+            "count",
+            model_plot_dir / "hdbscan_cluster_sizes.png",
+            "HDBSCAN cluster sizes",
+        )
+
+    if "pm25_real_mean" in cluster_summary.columns:
+        pm25_plot_df = cluster_summary[cluster_summary["cluster_label"] != -1][["cluster_label", "pm25_real_mean"]].copy()
+    elif "pm25_mean" in cluster_summary.columns:
+        pm25_plot_df = cluster_summary[cluster_summary["cluster_label"] != -1][["cluster_label", "pm25_mean"]].copy()
+        pm25_plot_df["pm25_real_mean"] = inverse_scale_feature(pm25_plot_df["pm25_mean"], scaler, TARGET)
+    else:
+        pm25_plot_df = pd.DataFrame()
+
+    if not pm25_plot_df.empty:
+        save_group_boxplot(
+            clustered,
+            "cluster_group",
+            "pm25_real",
+            model_plot_dir / "hdbscan_pm25_by_cluster.png",
+            "HDBSCAN PM2.5 distribution by group",
+        )
+
+    save_group_timeline_plot(
+        clustered,
+        "cluster_group",
+        "pm25_real",
+        model_plot_dir / "hdbscan_pm25_timeline.png",
+        "HDBSCAN regimes on recent PM2.5 timeline",
+        tail_rows=1600,
+    )
+    save_group_timeline_plot(
+        clustered,
+        "cluster_group",
+        "pm25_real",
+        model_plot_dir / "hdbscan_pm25_zoom.png",
+        "HDBSCAN recent PM2.5 zoom",
+        tail_rows=360,
+    )
+    scatter_x_col = "total_generation_mw_real" if "total_generation_mw_real" in clustered.columns else "total_generation_mw"
+    if scatter_x_col in clustered.columns and "pm25_real" in clustered.columns:
+        save_group_scatter_plot(
+            clustered,
+            scatter_x_col,
+            "pm25_real",
+            "cluster_group",
+            model_plot_dir / "hdbscan_scatter.png",
+            "HDBSCAN: PM2.5 vs total generation by group",
+        )
+    if "cluster_probability" in clustered.columns:
+        save_distribution_plot(
+            clustered,
+            "cluster_probability",
+            "cluster_group",
+            model_plot_dir / "hdbscan_confidence_distribution.png",
+            "HDBSCAN membership confidence distribution",
+        )
+
+    save_ranked_bar_plot(
+        feature_summary,
+        "feature",
+        "absolute_difference",
+        model_plot_dir / "hdbscan_feature_shift_panel.png",
+        "HDBSCAN feature shifts",
+        top_n=10,
+        color="#54A24B",
+    )
+    hdbscan_metrics_table = pd.DataFrame(
+        [
+            {
+                "Model": metrics_row["model"],
+                "Groups": metrics_row["primary_groups"],
+                "Noise Ratio": metrics_row["special_point_ratio"],
+                "Silhouette": metrics_row["silhouette_score"],
+                "Davies-Bouldin": metrics_row["davies_bouldin_score"],
+                "Avg Confidence": metrics_row["avg_confidence_or_severity"],
+            }
+        ]
+    )
+    save_table_image(
+        hdbscan_metrics_table,
+        model_plot_dir / "hdbscan_metrics_table.png",
+        "HDBSCAN metrics summary",
+    )
 
     return metrics_row, feature_summary, cluster_summary
 
 
-def process_gmm() -> tuple[dict[str, object], pd.DataFrame, pd.DataFrame]:
+def process_gmm(scaler) -> tuple[dict[str, object], pd.DataFrame, pd.DataFrame]:
     model_data_dir = UNSUP_DATA_DIR / "gaussian_mixture"
     model_plot_dir = UNSUP_PLOT_DIR / "gaussian_mixture"
     model_data_dir.mkdir(parents=True, exist_ok=True)
     model_plot_dir.mkdir(parents=True, exist_ok=True)
 
     raw_metrics = pd.read_csv(model_data_dir / "gmm_metrics.csv").iloc[0]
+    clustered = pd.read_csv(model_data_dir / "gmm_clustered_dataset.csv")
     feature_summary_raw = pd.read_csv(model_data_dir / "gmm_feature_summary.csv")
     cluster_summary = pd.read_csv(model_data_dir / "gmm_cluster_summary.csv")
+
+    if "pm25_real" not in clustered.columns and TARGET in clustered.columns:
+        clustered["pm25_real"] = inverse_scale_feature(clustered[TARGET], scaler, TARGET)
+    if "total_generation_mw_real" not in clustered.columns and "total_generation_mw" in clustered.columns:
+        clustered["total_generation_mw_real"] = inverse_scale_feature(
+            clustered["total_generation_mw"], scaler, "total_generation_mw"
+        )
+    if "cluster_label" in clustered.columns:
+        clustered["cluster_group"] = "Cluster " + clustered["cluster_label"].astype(int).astype(str)
 
     feature_summary = aggregate_feature_summary(feature_summary_raw)
 
@@ -575,20 +977,81 @@ def process_gmm() -> tuple[dict[str, object], pd.DataFrame, pd.DataFrame]:
         model_plot_dir,
     )
 
-    manifest = {
-        "name": "Gaussian Mixture",
-        "source_data": [
-            str(model_data_dir / "gmm_cluster_summary.csv"),
-            str(model_data_dir / "gmm_metrics.csv"),
-            str(model_data_dir / "gmm_feature_summary.csv"),
-        ],
-        "phase2_data_dir": str(model_data_dir),
-        "phase2_plot_dir": str(model_plot_dir),
-        "copied_data_files": copied_data,
-        "copied_plot_files": copied_plots,
-    }
-    with open(model_data_dir / "artifact_manifest.json", "w", encoding="utf-8") as file:
-        json.dump(manifest, file, indent=2)
+    save_cluster_profile_plot(
+        cluster_summary,
+        "cluster_label",
+        "count",
+        model_plot_dir / "gmm_cluster_sizes.png",
+        "Gaussian Mixture cluster sizes",
+    )
+    if "pm25_real_mean" in cluster_summary.columns:
+        save_group_boxplot(
+            clustered,
+            "cluster_group",
+            "pm25_real",
+            model_plot_dir / "gmm_pm25_by_cluster.png",
+            "Gaussian Mixture PM2.5 distribution by cluster",
+        )
+    save_group_timeline_plot(
+        clustered,
+        "cluster_group",
+        "pm25_real",
+        model_plot_dir / "gmm_pm25_timeline.png",
+        "Gaussian Mixture regimes on recent PM2.5 timeline",
+        tail_rows=1600,
+    )
+    save_group_timeline_plot(
+        clustered,
+        "cluster_group",
+        "pm25_real",
+        model_plot_dir / "gmm_pm25_zoom.png",
+        "Gaussian Mixture recent PM2.5 zoom",
+        tail_rows=360,
+    )
+    scatter_x_col = "total_generation_mw_real" if "total_generation_mw_real" in clustered.columns else "total_generation_mw"
+    if scatter_x_col in clustered.columns and "pm25_real" in clustered.columns:
+        save_group_scatter_plot(
+            clustered,
+            scatter_x_col,
+            "pm25_real",
+            "cluster_group",
+            model_plot_dir / "gmm_scatter.png",
+            "Gaussian Mixture: PM2.5 vs total generation by cluster",
+        )
+    if "cluster_confidence" in clustered.columns:
+        save_distribution_plot(
+            clustered,
+            "cluster_confidence",
+            "cluster_group",
+            model_plot_dir / "gmm_confidence_distribution.png",
+            "Gaussian Mixture cluster-confidence distribution",
+        )
+    save_ranked_bar_plot(
+        feature_summary,
+        "feature",
+        "absolute_difference",
+        model_plot_dir / "gmm_feature_shift_panel.png",
+        "Gaussian Mixture feature shifts",
+        top_n=10,
+        color="#72B7B2",
+    )
+    gmm_metrics_table = pd.DataFrame(
+        [
+            {
+                "Model": metrics_row["model"],
+                "Groups": metrics_row["primary_groups"],
+                "Silhouette": metrics_row["silhouette_score"],
+                "Davies-Bouldin": metrics_row["davies_bouldin_score"],
+                "Calinski-Harabasz": metrics_row["calinski_harabasz_score"],
+                "Avg Confidence": metrics_row["avg_confidence_or_severity"],
+            }
+        ]
+    )
+    save_table_image(
+        gmm_metrics_table,
+        model_plot_dir / "gmm_metrics_table.png",
+        "Gaussian Mixture metrics summary",
+    )
 
     return metrics_row, feature_summary, cluster_summary
 
@@ -650,20 +1113,39 @@ def process_isolation_forest() -> tuple[dict[str, object], pd.DataFrame, pd.Data
         model_plot_dir,
     )
 
-    manifest = {
-        "name": "Isolation Forest",
-        "source_data": [
-            str(model_data_dir / "isolation_forest_scored_dataset.csv"),
-            str(model_data_dir / "isolation_forest_metrics.csv"),
-            str(model_data_dir / "isolation_forest_feature_summary.csv"),
-        ],
-        "phase2_data_dir": str(model_data_dir),
-        "phase2_plot_dir": str(model_plot_dir),
-        "copied_data_files": copied_data,
-        "copied_plot_files": copied_plots,
-    }
-    with open(model_data_dir / "artifact_manifest.json", "w", encoding="utf-8") as file:
-        json.dump(manifest, file, indent=2)
+    save_cluster_profile_plot(
+        pm25_profile,
+        "group",
+        "pm25_real_mean",
+        model_plot_dir / "isolation_forest_pm25_profile.png",
+        "Isolation Forest PM2.5 profile",
+    )
+    save_ranked_bar_plot(
+        feature_summary,
+        "feature",
+        "absolute_difference",
+        model_plot_dir / "isolation_forest_feature_shift_panel.png",
+        "Isolation Forest feature shifts",
+        top_n=10,
+        color="#B279A2",
+    )
+    if_metrics_table = pd.DataFrame(
+        [
+            {
+                "Model": metrics_row["model"],
+                "Anomaly Ratio": metrics_row["special_point_ratio"],
+                "Avg Severity": metrics_row["avg_confidence_or_severity"],
+                "PM2.5 Normal Mean": raw_metrics["pm25_real_mean_normal"],
+                "PM2.5 Anomaly Mean": raw_metrics["pm25_real_mean_anomaly"],
+                "PM2.5 Anomaly P95": raw_metrics["pm25_real_p95_anomaly"],
+            }
+        ]
+    )
+    save_table_image(
+        if_metrics_table,
+        model_plot_dir / "isolation_forest_metrics_table.png",
+        "Isolation Forest metrics summary",
+    )
 
     return metrics_row, feature_summary, pm25_profile
 
@@ -697,10 +1179,21 @@ def build_supervised_outputs(scaler) -> dict[str, object]:
         COMP_PLOT_DIR / "supervised_feature_panels.png",
         "Supervised model feature summaries",
     )
+    supervised_table_df = comparison_df[
+        ["model", "evaluation_strategy", "MAE", "RMSE", "R2", "MAPE_pct", "SMAPE_pct"]
+    ].rename(
+        columns={
+            "model": "Model",
+            "evaluation_strategy": "Evaluation Strategy",
+            "MAPE_pct": "MAPE (%)",
+            "SMAPE_pct": "SMAPE (%)",
+        }
+    )
     save_table_image(
-        comparison_df[["model", "evaluation_strategy", "MAE", "RMSE", "R2", "MAPE_pct", "SMAPE_pct"]],
+        supervised_table_df,
         COMP_PLOT_DIR / "supervised_comparison_table.png",
         "Supervised model comparison table",
+        wrap_columns=["Evaluation Strategy"],
     )
 
     return {
@@ -716,7 +1209,7 @@ def build_supervised_outputs(scaler) -> dict[str, object]:
 
 def build_unsupervised_outputs(scaler) -> dict[str, object]:
     hdbscan_row, hdbscan_features, hdbscan_cluster_summary = process_hdbscan(scaler)
-    gmm_row, gmm_features, gmm_cluster_summary = process_gmm()
+    gmm_row, gmm_features, gmm_cluster_summary = process_gmm(scaler)
     if_row, if_features, if_pm25_profile = process_isolation_forest()
 
     comparison_df = pd.DataFrame([hdbscan_row, gmm_row, if_row])
