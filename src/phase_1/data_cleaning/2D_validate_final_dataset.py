@@ -1,10 +1,11 @@
 import pandas as pd
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+PHASE1_DATA_DIR = BASE_DIR / "data" / "phase_1"
 
-input_path = BASE_DIR / "data" / "2C_missing_values_handled.csv"
-output_path = BASE_DIR / "data" / "2D_validated_final_dataset.csv"
+input_path = PHASE1_DATA_DIR / "2C_missing_values_handled.csv"
+output_path = PHASE1_DATA_DIR / "2D_validated_final_dataset.csv"
 
 df = pd.read_csv(input_path)
 

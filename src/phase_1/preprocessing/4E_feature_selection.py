@@ -2,10 +2,11 @@ import pandas as pd
 from pathlib import Path
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+PHASE1_DATA_DIR = BASE_DIR / "data" / "phase_1"
 
-INPUT = BASE_DIR / "data" / "4D_scaled_dataset.csv"
-OUTPUT = BASE_DIR / "data" / "4E_selected_dataset.csv"
+INPUT = PHASE1_DATA_DIR / "4D_scaled_dataset.csv"
+OUTPUT = PHASE1_DATA_DIR / "4E_selected_dataset.csv"
 
 TARGET = "pm25"
 KEEP_COLS = ["datetime", "date"]

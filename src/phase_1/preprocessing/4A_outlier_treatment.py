@@ -1,10 +1,11 @@
 import pandas as pd
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+PHASE1_DATA_DIR = BASE_DIR / "data" / "phase_1"
 
-INPUT = BASE_DIR / "data" / "3B_engineered_dataset.csv"
-OUTPUT = BASE_DIR / "data" / "4A_outliers_handled.csv"
+INPUT = PHASE1_DATA_DIR / "3B_engineered_dataset.csv"
+OUTPUT = PHASE1_DATA_DIR / "4A_outliers_handled.csv"
 
 NON_FEATURE_COLS = {"datetime", "date"}
 

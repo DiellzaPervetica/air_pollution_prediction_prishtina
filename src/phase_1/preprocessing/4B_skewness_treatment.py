@@ -3,10 +3,11 @@ import numpy as np
 from pathlib import Path
 from sklearn.preprocessing import PowerTransformer
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+PHASE1_DATA_DIR = BASE_DIR / "data" / "phase_1"
 
-INPUT = BASE_DIR / "data" / "4A_outliers_handled.csv"
-OUTPUT = BASE_DIR / "data" / "4B_skewness_handled.csv"
+INPUT = PHASE1_DATA_DIR / "4A_outliers_handled.csv"
+OUTPUT = PHASE1_DATA_DIR / "4B_skewness_handled.csv"
 
 NON_FEATURE_COLS = {"datetime", "date"}
 

@@ -3,10 +3,11 @@ import pickle
 from pathlib import Path
 from sklearn.preprocessing import StandardScaler
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+PHASE1_DATA_DIR = BASE_DIR / "data" / "phase_1"
 
-INPUT = BASE_DIR / "data" / "4B_skewness_handled.csv"
-OUTPUT = BASE_DIR / "data" / "4D_scaled_dataset.csv"
+INPUT = PHASE1_DATA_DIR / "4B_skewness_handled.csv"
+OUTPUT = PHASE1_DATA_DIR / "4D_scaled_dataset.csv"
 SCALER_PATH = BASE_DIR / "models" / "scaler.pkl"
 
 SCALER_PATH.parent.mkdir(parents=True, exist_ok=True)

@@ -1,10 +1,11 @@
 import pandas as pd
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+PHASE1_DATA_DIR = BASE_DIR / "data" / "phase_1"
 
-input_path = BASE_DIR / "data" / "1A_merged_data_hourly_2023_2025.csv"
-output_dir = BASE_DIR / "data" / "1B_distinct_values"
+input_path = PHASE1_DATA_DIR / "1A_merged_data_hourly_2023_2025.csv"
+output_dir = PHASE1_DATA_DIR / "1B_distinct_values"
 
 output_dir.mkdir(parents=True, exist_ok=True)
 

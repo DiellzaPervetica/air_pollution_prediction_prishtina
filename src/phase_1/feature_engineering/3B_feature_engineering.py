@@ -2,10 +2,11 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+PHASE1_DATA_DIR = BASE_DIR / "data" / "phase_1"
 
-INPUT = BASE_DIR / "data" / "2D_validated_final_dataset.csv"
-OUTPUT = BASE_DIR / "data" / "3B_engineered_dataset.csv"
+INPUT = PHASE1_DATA_DIR / "2D_validated_final_dataset.csv"
+OUTPUT = PHASE1_DATA_DIR / "3B_engineered_dataset.csv"
 
 TARGET = "pm25"
 ENERGY_COLS = ["A3_MW", "A4_MW", "A5_MW", "B1_MW", "B2_MW", "total_generation_mw"]

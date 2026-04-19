@@ -1,8 +1,8 @@
 import pandas as pd
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DATA_DIR = BASE_DIR / "data"
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+DATA_DIR = BASE_DIR / "data" / "phase_1"
 RAW_DATA_DIR = BASE_DIR / "data" / "raw"
 
 air_path = RAW_DATA_DIR / "prishtina_air_quality_2023_2025.csv"

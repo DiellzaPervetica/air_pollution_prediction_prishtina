@@ -2,10 +2,11 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+PHASE1_DATA_DIR = BASE_DIR / "data" / "phase_1"
 
-input_path = BASE_DIR / "data" / "2A_cleaned_no_duplicates.csv"
-output_path = BASE_DIR / "data" / "2B_quality_checked.csv"
+input_path = PHASE1_DATA_DIR / "2A_cleaned_no_duplicates.csv"
+output_path = PHASE1_DATA_DIR / "2B_quality_checked.csv"
 
 df = pd.read_csv(input_path)
 

@@ -1,9 +1,16 @@
+import matplotlib
+matplotlib.use("Agg")
+
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-INPUT = "../data/2D_validated_final_dataset.csv"
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+PHASE1_DATA_DIR = BASE_DIR / "data" / "phase_1"
+PHASE1_PICTURES_DIR = BASE_DIR / "pictures" / "phase_1"
+
+INPUT = PHASE1_DATA_DIR / "2D_validated_final_dataset.csv"
 
 POLLUTANTS = ["co", "no2", "o3", "pm10", "pm25", "so2"]
 
@@ -20,8 +27,8 @@ WEATHER_FEATURES = [
 if __name__ == "__main__":
     df = pd.read_csv(INPUT)
 
-    pictures_dir = Path("../../pictures")
-    pictures_dir.mkdir(exist_ok=True)
+    pictures_dir = PHASE1_PICTURES_DIR
+    pictures_dir.mkdir(parents=True, exist_ok=True)
 
     print("\nCandidate pollutant columns:", POLLUTANTS)
 
@@ -42,7 +49,7 @@ if __name__ == "__main__":
     plt.title("Pollutant vs Energy & Weather Predictors Correlation")
     
     plt.savefig(pictures_dir / "pollutant_vs_predictors_heatmap.png", dpi=300, bbox_inches="tight")
-    plt.show()
+    plt.close()
 
     corr_pollutant = corr.loc[POLLUTANTS, POLLUTANTS].round(3)
     print("\n=== Pollutant <-> Pollutant correlation ===")
@@ -53,4 +60,4 @@ if __name__ == "__main__":
     plt.title("Pollutant <-> Pollutant Correlation")
     
     plt.savefig(pictures_dir / "pollutant_correlation_heatmap.png", dpi=300, bbox_inches="tight")
-    plt.show()
+    plt.close()

@@ -5,13 +5,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+PHASE1_DATA_DIR = BASE_DIR / "data" / "phase_1"
+PHASE1_PICTURES_DIR = BASE_DIR / "pictures" / "phase_1"
 
-INPUT_BEFORE = BASE_DIR / "data" / "3B_engineered_dataset.csv"
-INPUT_OUTLIERS = BASE_DIR / "data" / "4A_outliers_handled.csv"
-INPUT_SKEWNESS = BASE_DIR / "data" / "4B_skewness_handled.csv"
+INPUT_BEFORE = PHASE1_DATA_DIR / "3B_engineered_dataset.csv"
+INPUT_OUTLIERS = PHASE1_DATA_DIR / "4A_outliers_handled.csv"
+INPUT_SKEWNESS = PHASE1_DATA_DIR / "4B_skewness_handled.csv"
 
-PLOTS_DIR = BASE_DIR / "pictures" / "4C_visualization_before_after"
+PLOTS_DIR = PHASE1_PICTURES_DIR / "4C_visualization_before_after"
 PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 FEATURES = [
