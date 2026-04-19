@@ -1,0 +1,12 @@
+Skenari: Improved Model
+=====================================
+R²: 0.7454
+RMSE:     3.2537 µg/m³
+MAE:      2.0827 µg/m³
+
+Top 5 veçoritë më të rëndësishme:
+- pm25_lag_1: 79.37%
+- hour_cos: 4.14%
+- pm25_lag_24: 3.42%
+- hour_sin: 3.12%
+- total_generation_mw: 1.86%

@@ -1,0 +1,4 @@
+model,family,evaluation_strategy,target,unit,n_features,MAE,RMSE,MAPE_pct,SMAPE_pct,R2,source_metrics
+LightGBM Improved,supervised,TimeSeriesSplit CV mean,pm25,real_pm25,15,2.0827,3.2537,,,0.7454,C:\Users\Fatjeta\PycharmProjects\air_pollution_prediction_prishtina\src\phase_2\lightgbm_model\improved_model\metrics_summary.txt
+CatBoost,supervised,Chronological holdout test,pm25,real_pm25,15,2.691818781470201,4.3210347156378575,23.48604068314803,21.53820585772089,0.8147474543448939,C:\Users\Fatjeta\PycharmProjects\air_pollution_prediction_prishtina\data\catboost_metrics.csv
+SARIMAX,supervised,Chronological holdout test,pm25,real_pm25,9,3.112524813804714,4.765372988305577,28.010133345110034,25.46970645722307,0.7747879766982697,C:\Users\Fatjeta\PycharmProjects\air_pollution_prediction_prishtina\data\sarimax_metrics.csv

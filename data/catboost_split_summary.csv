@@ -1,2 +1,0 @@
-rows_total,rows_train,rows_val,rows_test,target,n_features,train_end,validation_end,test_start
-9347,6542,1402,1403,pm25,13,2025-07-17 21:00:00,2025-09-18 12:00:00,2025-09-18 13:00:00

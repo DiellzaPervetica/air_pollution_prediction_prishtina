@@ -1,0 +1,46 @@
+{
+  "input_path": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\phase_1\\4E_selected_dataset.csv",
+  "model_path": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\models\\catboost_model\\catboost_pm25_model.cbm",
+  "outputs": {
+    "forecasts": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\catboost_forecasts.csv",
+    "metrics": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\catboost_metrics.csv",
+    "feature_importance": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\catboost_feature_importance.csv",
+    "split_summary": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\catboost_split_summary.csv",
+    "residuals": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\catboost_residuals.csv",
+    "interactive_plot": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\catboost_model\\catboost_forecast_interactive.html",
+    "static_plot": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\catboost_model\\catboost_actual_vs_predicted.png",
+    "residual_plot": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\catboost_model\\catboost_residual_diagnostics.png"
+  },
+  "config": {
+    "target": "pm25",
+    "train_ratio": 0.7,
+    "val_ratio": 0.15,
+    "test_ratio": 0.15,
+    "enable_pm25_lags": true,
+    "pm25_lags": [
+      1,
+      24
+    ],
+    "iterations": 600,
+    "learning_rate": 0.03,
+    "depth": 6,
+    "early_stopping_rounds": 50
+  },
+  "feature_columns": [
+    "hour_sin",
+    "hour_cos",
+    "month_sin",
+    "month_cos",
+    "pollution_stagnation_index",
+    "wind_x_vector",
+    "wind_y_vector",
+    "total_generation_mw",
+    "temperature_2m (\u00b0C)",
+    "rain (mm)",
+    "relative_humidity_2m (%)",
+    "wind_direction_10m (\u00b0)",
+    "wind_speed_10m (km/h)",
+    "pm25_lag_1",
+    "pm25_lag_24"
+  ]
+}

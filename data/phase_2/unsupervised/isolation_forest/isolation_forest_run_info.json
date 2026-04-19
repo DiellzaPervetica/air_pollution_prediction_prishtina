@@ -1,0 +1,39 @@
+{
+  "input_path": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\phase_1\\4E_selected_dataset.csv",
+  "model_path": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\models\\isolation_forest_model\\isolation_forest_model.pkl",
+  "feature_columns_path": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\models\\isolation_forest_model\\isolation_forest_feature_columns.pkl",
+  "outputs": {
+    "scored_dataset": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\isolation_forest_scored_dataset.csv",
+    "metrics": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\isolation_forest_metrics.csv",
+    "feature_summary": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\isolation_forest_feature_summary.csv",
+    "top_anomalies": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\isolation_forest_top_anomalies.csv",
+    "legacy_top_anomalies": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\src\\phase_2\\isolation_forest_model\\isolation_forest_results\\top_anomalies_list.csv",
+    "pm25_plot": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\isolation_forest_model\\isolation_forest_pm25.png",
+    "energy_plot": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\isolation_forest_model\\isolation_forest_energy.png",
+    "zoom_plot": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\isolation_forest_model\\isolation_forest_pm25_zoom.png",
+    "scatter_plot": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\isolation_forest_model\\isolation_forest_scatter.png",
+    "feature_shift_plot": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\isolation_forest_model\\isolation_forest_feature_shift.png",
+    "score_distribution_plot": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\isolation_forest_model\\isolation_forest_score_distribution.png"
+  },
+  "config": {
+    "n_estimators": 100,
+    "contamination": 0.05,
+    "random_state": 42,
+    "n_jobs": 1
+  },
+  "feature_columns": [
+    "hour_sin",
+    "hour_cos",
+    "month_sin",
+    "month_cos",
+    "pollution_stagnation_index",
+    "wind_x_vector",
+    "wind_y_vector",
+    "total_generation_mw",
+    "temperature_2m (\u00b0C)",
+    "rain (mm)",
+    "relative_humidity_2m (%)",
+    "wind_speed_10m (km/h)",
+    "pm25"
+  ]
+}

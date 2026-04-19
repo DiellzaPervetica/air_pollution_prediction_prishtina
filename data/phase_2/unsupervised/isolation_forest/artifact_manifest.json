@@ -1,0 +1,25 @@
+{
+  "name": "Isolation Forest",
+  "source_data": [
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\isolation_forest_scored_dataset.csv",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\isolation_forest_metrics.csv",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\isolation_forest_feature_summary.csv"
+  ],
+  "phase2_data_dir": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\phase_2\\unsupervised\\isolation_forest",
+  "phase2_plot_dir": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\phase_2\\unsupervised\\isolation_forest",
+  "copied_data_files": [
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\phase_2\\unsupervised\\isolation_forest\\isolation_forest_scored_dataset.csv",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\phase_2\\unsupervised\\isolation_forest\\isolation_forest_metrics.csv",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\phase_2\\unsupervised\\isolation_forest\\isolation_forest_feature_summary.csv",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\phase_2\\unsupervised\\isolation_forest\\isolation_forest_top_anomalies.csv",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\phase_2\\unsupervised\\isolation_forest\\isolation_forest_run_info.json"
+  ],
+  "copied_plot_files": [
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\phase_2\\unsupervised\\isolation_forest\\isolation_forest_pm25.png",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\phase_2\\unsupervised\\isolation_forest\\isolation_forest_energy.png",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\phase_2\\unsupervised\\isolation_forest\\isolation_forest_pm25_zoom.png",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\phase_2\\unsupervised\\isolation_forest\\isolation_forest_scatter.png",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\phase_2\\unsupervised\\isolation_forest\\isolation_forest_feature_shift.png",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\phase_2\\unsupervised\\isolation_forest\\isolation_forest_score_distribution.png"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "LightGBM Improved",
+  "source_dir": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\src\\phase_2\\lightgbm_model\\improved_model",
+  "phase2_data_dir": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\phase_2\\supervised\\lightgbm_improved",
+  "phase2_plot_dir": "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\phase_2\\supervised\\lightgbm_improved",
+  "copied_data_files": [
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\phase_2\\supervised\\lightgbm_improved\\feature_importance.csv",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\data\\phase_2\\supervised\\lightgbm_improved\\metrics_summary.txt"
+  ],
+  "copied_plot_files": [
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\phase_2\\supervised\\lightgbm_improved\\actual_vs_predicted.png",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\phase_2\\supervised\\lightgbm_improved\\feature_importance.png",
+    "C:\\Users\\Fatjeta\\PycharmProjects\\air_pollution_prediction_prishtina\\pictures\\phase_2\\supervised\\lightgbm_improved\\learning_curve.png"
+  ]
+}

@@ -1,0 +1,2 @@
+rows_used,n_features,n_anomalies,anomaly_ratio,contamination,n_estimators,score_mean_all,score_mean_normal,score_mean_anomaly,severity_mean_anomaly,pm25_real_mean_normal,pm25_real_mean_anomaly,pm25_real_p95_anomaly,total_generation_real_mean_normal,total_generation_real_mean_anomaly
+9347,13,468,0.05006954102920723,0.05,100,0.0722779596345362,0.07749467791686034,-0.026694778888446447,0.026694778888446447,10.416901142020498,8.074682991452992,22.31394999999999,555.2856680617188,574.1167104273504
