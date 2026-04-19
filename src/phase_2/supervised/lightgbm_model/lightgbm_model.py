@@ -11,7 +11,7 @@ import lightgbm as lgb
 import matplotlib.pyplot as plt
 import seaborn as sns
 import shap
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_absolute_percentage_error
 from sklearn.model_selection import TimeSeriesSplit
 
 CURRENT_DIR = Path(__file__).resolve().parent
@@ -49,6 +49,9 @@ def load_and_preprocess_data(use_lags=True):
     
     df = df.dropna().reset_index(drop=True)
     return df, target
+
+def calculate_smape(y_true, y_pred):
+    return 100 / len(y_true) * np.sum(2 * np.abs(y_pred - y_true) / (np.abs(y_true) + np.abs(y_pred) + 1e-8))
 
 def plot_feature_importance(importance_df, output_dir):
     plt.figure(figsize=(10, 8))
@@ -107,6 +110,7 @@ def train_and_evaluate():
 
     tscv = TimeSeriesSplit(n_splits=5)
     all_mae_real, all_rmse_real, all_r2_real = [], [], []
+    all_mape_real, all_smape_real = [], []
 
     params = {
         'n_estimators': 1000,
@@ -151,6 +155,8 @@ def train_and_evaluate():
         all_mae_real.append(mean_absolute_error(y_test_real, preds_real))
         all_rmse_real.append(np.sqrt(mean_squared_error(y_test_real, preds_real)))
         all_r2_real.append(r2_score(y_test_real, preds_real))
+        all_mape_real.append(mean_absolute_percentage_error(y_test_real, preds_real) * 100)
+        all_smape_real.append(calculate_smape(y_test_real, preds_real))
 
         if fold == tscv.n_splits - 1:
             last_fold_dates = df.iloc[test_idx]['datetime'].values
@@ -162,8 +168,10 @@ def train_and_evaluate():
     mean_r2 = np.mean(all_r2_real)
     mean_rmse = np.mean(all_rmse_real)
     mean_mae = np.mean(all_mae_real)
+    mean_mape = np.mean(all_mape_real)
+    mean_smape = np.mean(all_smape_real)
 
-    print(f"Rezultatet e evaluimit të modelit: R²: {mean_r2:.4f} | RMSE: {mean_rmse:.4f} µg/m³ | MAE: {mean_mae:.4f} µg/m³\n")
+    print(f"Rezultatet e evaluimit të modelit: R²: {mean_r2:.4f} | RMSE: {mean_rmse:.4f} µg/m³ | MAE: {mean_mae:.4f} µg/m³ | MAPE: {mean_mape:.2f}% | SMAPE: {mean_smape:.2f}%\n")
 
     importance_df = pd.DataFrame({
         'Feature': features,
@@ -177,9 +185,11 @@ def train_and_evaluate():
     report_text = (
         f"Skenari: {SCENARIO_NAME.replace('_', ' ').title()}\n"
         f"=====================================\n"
-        f"R²: {mean_r2:.4f}\n"
+        f"R²:       {mean_r2:.4f}\n"
         f"RMSE:     {mean_rmse:.4f} µg/m³\n"
-        f"MAE:      {mean_mae:.4f} µg/m³\n\n"
+        f"MAE:      {mean_mae:.4f} µg/m³\n"
+        f"MAPE:     {mean_mape:.2f}%\n"
+        f"SMAPE:    {mean_smape:.2f}%\n\n"
         f"Top 5 veçoritë më të rëndësishme:\n"
     )
     for i, row in importance_df.head(5).iterrows():

@@ -1,8 +1,10 @@
 Skenari: Improved Model
 =====================================
-R²: 0.7454
+R²:       0.7454
 RMSE:     3.2537 µg/m³
 MAE:      2.0827 µg/m³
+MAPE:     20.78%
+SMAPE:    19.90%
 
 Top 5 veçoritë më të rëndësishme:
 - pm25_lag_1: 79.37%

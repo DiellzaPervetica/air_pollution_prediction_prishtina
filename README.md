@@ -1475,7 +1475,7 @@ Faza e modelimit është ndërtuar mbi parimet e mëposhtme:
 
 Për të pasur krahasim sa më të qartë dhe sa më profesional, output-et e fazës së dytë janë harmonizuar në dy familje:
 
-- **supervised**, ku modelet krahasohen sipas `MAE`, `RMSE`, `R²`, dhe aty ku ekzistojnë edhe `MAPE` dhe `SMAPE`;
+- **supervised**, ku modelet krahasohen sipas `MAE`, `RMSE`, `R²`, `MAPE` dhe `SMAPE`;
 - **unsupervised**, ku modelet krahasohen sipas numrit të grupeve kryesore, raportit të pikave speciale (`noise` ose `anomaly ratio`), si dhe metrikave të brendshme të clustering-ut kur këto janë të aplikueshme.
 
 Ky harmonizim është shumë i rëndësishëm akademikisht, sepse:
@@ -1520,7 +1520,7 @@ Kjo figurë ndihmon shumë në raport, sepse e bën të dukshme si ndryshon nive
 
 | Modeli | Strategjia e evaluimit | MAE | RMSE | R² | MAPE (%) | SMAPE (%) |
 |---|---|---:|---:|---:|---:|---:|
-| LightGBM Improved | TimeSeriesSplit CV mean | 2.0827 | 3.2537 | 0.7454 | N/A | N/A |
+| LightGBM Improved | TimeSeriesSplit CV mean | 2.0827 | 3.2537 | 0.7454 | 20.78 | 19.90 |
 | CatBoost | Chronological holdout test | 2.6918 | 4.3210 | 0.8147 | 23.4860 | 21.5382 |
 | SARIMAX | Chronological holdout test | 3.1125 | 4.7654 | 0.7748 | 28.0101 | 25.4697 |
 
