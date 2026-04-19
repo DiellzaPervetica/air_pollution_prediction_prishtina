@@ -1,486 +1,607 @@
+from __future__ import annotations
+
+import json
+import pickle
 from pathlib import Path
-import time
+
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from sklearn.ensemble import ExtraTreesRegressor
-from sklearn.metrics import mean_absolute_error, r2_score
 
+# ---------------------------------------------------------
+# SAFE CATBOOST IMPORT
+# ---------------------------------------------------------
+try:
+    from catboost import CatBoostRegressor
+    CATBOOST_AVAILABLE = True
+    CATBOOST_IMPORT_ERROR = ""
+except Exception as e:
+    CatBoostRegressor = None
+    CATBOOST_AVAILABLE = False
+    CATBOOST_IMPORT_ERROR = str(e)
+
+# ---------------------------------------------------------
+# PAGE CONFIG
+# ---------------------------------------------------------
 st.set_page_config(
-    page_title="Prishtina Live Pollution Simulator",
+    page_title="Prishtina PM2.5 Forecast Studio",
     page_icon="🌫️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
+# ---------------------------------------------------------
+# PATHS
+# ---------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent
+
 DATA_CANDIDATES = [
-    BASE_DIR / "data" / "2D_validated_final_dataset.csv",
-    BASE_DIR / "data" / "phase_1" / "2D_validated_final_dataset.csv",
-]
-DATA_PATH = next((path for path in DATA_CANDIDATES if path.exists()), DATA_CANDIDATES[-1])
-
-POLLUTANTS = ["co", "no2", "o3", "pm10", "pm25", "so2"]
-
-ENERGY_COLS = ["A3_MW", "A4_MW", "A5_MW", "B1_MW", "B2_MW"]
-
-WEATHER_COLS = [
-    "temperature_2m (°C)",
-    "rain (mm)",
-    "snowfall (cm)",
-    "relative_humidity_2m (%)",
-    "wind_direction_10m (°)",
-    "wind_speed_10m (km/h)",
+    BASE_DIR / "data" / "phase_1" / "4E_selected_dataset.csv",
+    BASE_DIR / "data" / "4E_selected_dataset.csv",
 ]
 
-RAW_CONTROL_COLS = ENERGY_COLS + WEATHER_COLS
+SCALER_CANDIDATES = [
+    BASE_DIR / "models" / "scaler.pkl",
+]
 
-MODEL_FEATURES = [
-    *ENERGY_COLS,
+CATBOOST_MODEL_CANDIDATES = [
+    BASE_DIR / "models" / "catboost_model" / "catboost_pm25_model.cbm",
+]
+
+CATBOOST_FEATURE_CANDIDATES = [
+    BASE_DIR / "models" / "catboost_model" / "catboost_feature_columns.pkl",
+]
+
+CATBOOST_RUN_INFO_CANDIDATES = [
+    BASE_DIR / "data" / "phase_2" / "supervised" / "catboost" / "catboost_run_info.json",
+]
+
+CATBOOST_FORECAST_CANDIDATES = [
+    BASE_DIR / "data" / "phase_2" / "supervised" / "catboost" / "catboost_forecasts.csv",
+]
+
+CATBOOST_METRICS_CANDIDATES = [
+    BASE_DIR / "data" / "phase_2" / "supervised" / "catboost" / "catboost_metrics.csv",
+]
+
+CATBOOST_IMPORTANCE_CANDIDATES = [
+    BASE_DIR / "data" / "phase_2" / "supervised" / "catboost" / "catboost_feature_importance.csv",
+]
+
+SUPERVISED_COMPARISON_CANDIDATES = [
+    BASE_DIR / "data" / "phase_2" / "comparison" / "supervised_model_comparison.csv",
+]
+
+UNSUPERVISED_COMPARISON_CANDIDATES = [
+    BASE_DIR / "data" / "phase_2" / "comparison" / "unsupervised_model_comparison.csv",
+]
+
+TARGET = "pm25"
+TIME_CANDIDATES = ["timestamp", "datetime", "date"]
+
+DIRECT_CONTROL_COLS = [
     "total_generation_mw",
     "temperature_2m (°C)",
     "rain (mm)",
-    "snowfall (cm)",
     "relative_humidity_2m (%)",
     "wind_direction_10m (°)",
     "wind_speed_10m (km/h)",
-    "day_of_week",
+]
+
+DEFAULT_CATBOOST_FEATURES = [
     "hour_sin",
     "hour_cos",
     "month_sin",
     "month_cos",
-    "temp_wind_interact",
-    "generation_humidity_interact",
     "pollution_stagnation_index",
     "wind_x_vector",
     "wind_y_vector",
+    "total_generation_mw",
+    "temperature_2m (°C)",
+    "rain (mm)",
+    "relative_humidity_2m (%)",
+    "wind_direction_10m (°)",
+    "wind_speed_10m (km/h)",
+    "pm25_lag_1",
+    "pm25_lag_24",
 ]
 
 DISPLAY_NAMES = {
-    "A3_MW": "A3 (MW)",
-    "A4_MW": "A4 (MW)",
-    "A5_MW": "A5 (MW)",
-    "B1_MW": "B1 (MW)",
-    "B2_MW": "B2 (MW)",
-    "temperature_2m (°C)": "Temperature (°C)",
-    "rain (mm)": "Rain (mm)",
-    "snowfall (cm)": "Snowfall (cm)",
-    "relative_humidity_2m (%)": "Relative Humidity (%)",
-    "wind_direction_10m (°)": "Wind Direction (°)",
-    "wind_speed_10m (km/h)": "Wind Speed (km/h)",
     "pm25": "PM2.5",
-    "pm10": "PM10",
-    "co": "CO",
-    "no2": "NO2",
-    "o3": "O3",
-    "so2": "SO2",
+    "total_generation_mw": "Total generation",
+    "temperature_2m (°C)": "Temperature",
+    "rain (mm)": "Rain",
+    "relative_humidity_2m (%)": "Humidity",
+    "wind_direction_10m (°)": "Wind direction",
+    "wind_speed_10m (km/h)": "Wind speed",
+    "pollution_stagnation_index": "Stagnation index",
+    "wind_x_vector": "Wind X",
+    "wind_y_vector": "Wind Y",
 }
 
-SESSION_KEYS = {
-    "A3_MW": "a3_mw",
-    "A4_MW": "a4_mw",
-    "A5_MW": "a5_mw",
-    "B1_MW": "b1_mw",
-    "B2_MW": "b2_mw",
-    "temperature_2m (°C)": "temperature",
-    "rain (mm)": "rain",
-    "snowfall (cm)": "snowfall",
-    "relative_humidity_2m (%)": "humidity",
-    "wind_direction_10m (°)": "wind_direction",
-    "wind_speed_10m (km/h)": "wind_speed",
+PRESETS = {
+    "Balanced": {
+        "generation_pct": 0,
+        "temperature_delta": 0.0,
+        "rain_pct": 0,
+        "humidity_delta": 0.0,
+        "wind_speed_pct": 0,
+        "wind_direction_shift": 0,
+    },
+    "Cold stagnant evening": {
+        "generation_pct": 18,
+        "temperature_delta": -4.0,
+        "rain_pct": -100,
+        "humidity_delta": 8.0,
+        "wind_speed_pct": -35,
+        "wind_direction_shift": 0,
+    },
+    "Windy clean day": {
+        "generation_pct": -10,
+        "temperature_delta": 3.0,
+        "rain_pct": 0,
+        "humidity_delta": -6.0,
+        "wind_speed_pct": 45,
+        "wind_direction_shift": 20,
+    },
+    "Rain washout": {
+        "generation_pct": 0,
+        "temperature_delta": 0.0,
+        "rain_pct": 120,
+        "humidity_delta": 6.0,
+        "wind_speed_pct": 15,
+        "wind_direction_shift": 0,
+    },
+    "High generation night": {
+        "generation_pct": 25,
+        "temperature_delta": -1.0,
+        "rain_pct": -100,
+        "humidity_delta": 5.0,
+        "wind_speed_pct": -15,
+        "wind_direction_shift": 0,
+    },
 }
 
-def safe_numeric(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
-    df = df.copy()
-    for col in cols:
+# ---------------------------------------------------------
+# HELPERS
+# ---------------------------------------------------------
+def first_existing(candidates: list[Path]) -> Path | None:
+    for path in candidates:
+        if path.exists():
+            return path
+    return None
+
+
+def detect_time_col(df: pd.DataFrame) -> str:
+    for col in TIME_CANDIDATES:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-    return df
-
-
-def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-
-    df["datetime"] = pd.to_datetime(df["datetime"], errors="coerce")
-    df = df.dropna(subset=["datetime"]).sort_values("datetime").reset_index(drop=True)
-
-    df = safe_numeric(df, RAW_CONTROL_COLS + POLLUTANTS)
-
-    df["total_generation_mw"] = df[ENERGY_COLS].sum(axis=1)
-
-    df["hour"] = df["datetime"].dt.hour
-    df["day_of_week"] = df["datetime"].dt.dayofweek
-    df["month"] = df["datetime"].dt.month
-
-    df["hour_sin"] = np.sin(2 * np.pi * df["hour"] / 24)
-    df["hour_cos"] = np.cos(2 * np.pi * df["hour"] / 24)
-    df["month_sin"] = np.sin(2 * np.pi * df["month"] / 12)
-    df["month_cos"] = np.cos(2 * np.pi * df["month"] / 12)
-
-    df["temp_wind_interact"] = df["temperature_2m (°C)"] * df["wind_speed_10m (km/h)"]
-    df["generation_humidity_interact"] = (
-        df["total_generation_mw"] * df["relative_humidity_2m (%)"]
-    )
-
-    df["pollution_stagnation_index"] = (
-        df["total_generation_mw"] / (df["wind_speed_10m (km/h)"] + 0.1)
-    )
-
-    wd_rad = np.deg2rad(df["wind_direction_10m (°)"])
-    wv = df["wind_speed_10m (km/h)"]
-    df["wind_x_vector"] = wv * np.cos(wd_rad)
-    df["wind_y_vector"] = wv * np.sin(wd_rad)
-
-    return df
+            return col
+    raise ValueError(f"Nuk u gjet kolona kohore. U provuan: {TIME_CANDIDATES}")
 
 
 @st.cache_data(show_spinner=False)
-def load_training_frame(path: str) -> pd.DataFrame:
+def load_optional_csv(path: str | None) -> pd.DataFrame | None:
+    if path is None:
+        return None
+    p = Path(path)
+    if not p.exists():
+        return None
+    try:
+        return pd.read_csv(p)
+    except Exception:
+        return None
+
+
+@st.cache_data(show_spinner=False)
+def load_phase1_frame(path: str) -> pd.DataFrame:
     df = pd.read_csv(path)
+    time_col = detect_time_col(df)
+    df[time_col] = pd.to_datetime(df[time_col], errors="coerce")
+    df = df.dropna(subset=[time_col]).copy()
+    df = df.rename(columns={time_col: "timestamp"}).sort_values("timestamp").reset_index(drop=True)
 
-    required = ["datetime", *RAW_CONTROL_COLS, *POLLUTANTS]
-    missing = [c for c in required if c not in df.columns]
-    if missing:
-        raise ValueError(
-            "Mungojnë kolonat e nevojshme në dataset: " + ", ".join(missing)
-        )
+    numeric_cols = [c for c in df.columns if c != "timestamp"]
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    df = add_engineered_features(df)
-    df = df.dropna(subset=MODEL_FEATURES + POLLUTANTS).reset_index(drop=True)
+    if TARGET not in df.columns:
+        raise ValueError(f"Mungon kolona target '{TARGET}' në dataset.")
+
     return df
 
 
-@st.cache_resource(show_spinner=True)
-def train_model(path: str):
-    df = load_training_frame(path)
+@st.cache_resource(show_spinner=False)
+def load_pickle(path: str | None):
+    if path is None:
+        return None
+    p = Path(path)
+    if not p.exists():
+        return None
+    with open(p, "rb") as f:
+        return pickle.load(f)
 
-    # Time-aware split: first 80% train, last 20% test
-    split_idx = int(len(df) * 0.8)
-    train_df = df.iloc[:split_idx].copy()
-    test_df = df.iloc[split_idx:].copy()
 
-    X_train = train_df[MODEL_FEATURES]
-    y_train = train_df[POLLUTANTS]
+@st.cache_resource(show_spinner=False)
+def load_catboost_bundle(
+    model_path: str | None,
+    feature_path: str | None,
+    run_info_path: str | None,
+    scaler_path: str | None,
+):
+    scaler = load_pickle(scaler_path)
 
-    X_test = test_df[MODEL_FEATURES]
-    y_test = test_df[POLLUTANTS]
+    feature_cols = None
+    if feature_path is not None and Path(feature_path).exists():
+        with open(feature_path, "rb") as f:
+            feature_cols = pickle.load(f)
 
-    model = ExtraTreesRegressor(
-        n_estimators=350,
-        random_state=42,
-        n_jobs=-1,
-        min_samples_leaf=2,
+    if feature_cols is None and run_info_path is not None and Path(run_info_path).exists():
+        with open(run_info_path, "r", encoding="utf-8") as f:
+            run_info = json.load(f)
+        feature_cols = run_info.get("feature_columns")
+
+    if not feature_cols:
+        feature_cols = DEFAULT_CATBOOST_FEATURES
+
+    # if catboost not available or model missing, return cleanly
+    if (not CATBOOST_AVAILABLE) or model_path is None or (not Path(model_path).exists()):
+        return None, feature_cols, scaler
+
+    model = CatBoostRegressor()
+    model.load_model(str(model_path))
+    return model, feature_cols, scaler
+
+
+def scaler_feature_index(scaler) -> dict[str, int]:
+    names = getattr(scaler, "feature_names_in_", None)
+    if scaler is None or names is None:
+        return {}
+    return {name: idx for idx, name in enumerate(names)}
+
+
+def inverse_scale_value(value: float, feature_name: str, scaler) -> float:
+    val = float(value)
+
+    idx_map = scaler_feature_index(scaler)
+    if scaler is not None and feature_name in idx_map:
+        idx = idx_map[feature_name]
+        val = val * float(scaler.scale_[idx]) + float(scaler.mean_[idx])
+
+    if feature_name == TARGET:
+        try:
+            val = np.expm1(val)
+        except Exception:
+            pass
+        val = max(val, 0.0)
+
+    return float(val)
+
+
+def scale_value(value: float, feature_name: str, scaler) -> float:
+    val = float(value)
+
+    if feature_name == TARGET:
+        val = np.log1p(max(val, 0.0))
+
+    idx_map = scaler_feature_index(scaler)
+    if scaler is not None and feature_name in idx_map:
+        idx = idx_map[feature_name]
+        denom = float(scaler.scale_[idx]) if float(scaler.scale_[idx]) != 0 else 1.0
+        val = (val - float(scaler.mean_[idx])) / denom
+
+    return float(val)
+
+
+@st.cache_data(show_spinner=False)
+def build_display_frame(df_model_space: pd.DataFrame, scaler_path: str | None) -> pd.DataFrame:
+    scaler = load_pickle(scaler_path)
+    out = df_model_space.copy()
+
+    cols_to_inverse = [c for c in DIRECT_CONTROL_COLS + [TARGET] if c in out.columns]
+    for col in cols_to_inverse:
+        out[col] = out[col].apply(lambda x: inverse_scale_value(x, col, scaler))
+
+    out["hour"] = out["timestamp"].dt.hour
+    out["month"] = out["timestamp"].dt.month
+    out["day_name"] = out["timestamp"].dt.day_name()
+
+    return out
+
+
+def get_context_subset(df_display: pd.DataFrame, ts: pd.Timestamp) -> pd.DataFrame:
+    subset = df_display[(df_display["month"] == ts.month) & (df_display["hour"] == ts.hour)].copy()
+    if len(subset) >= 20:
+        return subset
+
+    subset = df_display[df_display["hour"] == ts.hour].copy()
+    if len(subset) >= 20:
+        return subset
+
+    return df_display.copy()
+
+
+def profile_controls(df_display: pd.DataFrame, ts: pd.Timestamp) -> dict[str, float]:
+    subset = get_context_subset(df_display, ts)
+    values = {}
+    for col in DIRECT_CONTROL_COLS:
+        if col not in subset.columns:
+            values[col] = 0.0
+            continue
+        series = pd.to_numeric(subset[col], errors="coerce").dropna()
+        values[col] = float(series.median()) if not series.empty else 0.0
+    return values
+
+
+def nearest_historical_controls(df_display: pd.DataFrame, ts: pd.Timestamp) -> dict[str, float]:
+    exact = df_display.loc[df_display["timestamp"] == ts]
+    if not exact.empty:
+        row = exact.iloc[0]
+        return {col: float(row[col]) for col in DIRECT_CONTROL_COLS if col in exact.columns}
+    return profile_controls(df_display, ts)
+
+
+def apply_scenario_adjustments(base: dict[str, float], settings: dict[str, float]) -> dict[str, float]:
+    adjusted = dict(base)
+
+    adjusted["total_generation_mw"] = max(
+        0.0, base["total_generation_mw"] * (1.0 + settings["generation_pct"] / 100.0)
     )
-    model.fit(X_train, y_train)
-
-    pred_test = pd.DataFrame(
-        model.predict(X_test),
-        columns=POLLUTANTS,
-        index=y_test.index,
+    adjusted["temperature_2m (°C)"] = base["temperature_2m (°C)"] + settings["temperature_delta"]
+    adjusted["rain (mm)"] = max(
+        0.0, base["rain (mm)"] * (1.0 + settings["rain_pct"] / 100.0)
     )
+    adjusted["relative_humidity_2m (%)"] = float(
+        np.clip(base["relative_humidity_2m (%)"] + settings["humidity_delta"], 0.0, 100.0)
+    )
+    adjusted["wind_speed_10m (km/h)"] = max(
+        0.0, base["wind_speed_10m (km/h)"] * (1.0 + settings["wind_speed_pct"] / 100.0)
+    )
+    adjusted["wind_direction_10m (°)"] = (
+        base["wind_direction_10m (°)"] + settings["wind_direction_shift"]
+    ) % 360.0
 
-    metrics = []
-    for pollutant in POLLUTANTS:
-        y_true = y_test[pollutant].values
-        y_pred = pred_test[pollutant].values
-
-        metrics.append(
-            {
-                "Pollutant": DISPLAY_NAMES.get(pollutant, pollutant),
-                "R2": round(r2_score(y_true, y_pred), 4),
-                "MAE": round(mean_absolute_error(y_true, y_pred), 4),
-                "Actual Mean": round(np.mean(y_true), 4),
-                "Predicted Mean": round(np.mean(y_pred), 4),
-            }
-        )
-
-    metrics_df = pd.DataFrame(metrics)
-    return model, metrics_df
+    return adjusted
 
 
-def build_feature_row(
-    selected_date,
-    selected_hour: int,
-    raw_inputs: dict,
+def build_catboost_row(
+    ts: pd.Timestamp,
+    controls_display: dict[str, float],
+    lag1_model_space: float,
+    lag24_model_space: float,
+    feature_cols: list[str],
+    scaler,
 ) -> pd.DataFrame:
-    ts = pd.Timestamp(selected_date) + pd.Timedelta(hours=int(selected_hour))
+    gen = float(controls_display["total_generation_mw"])
+    temp = float(controls_display["temperature_2m (°C)"])
+    rain = max(0.0, float(controls_display["rain (mm)"]))
+    humidity = float(np.clip(controls_display["relative_humidity_2m (%)"], 0.0, 100.0))
+    wind_dir = float(controls_display["wind_direction_10m (°)"]) % 360.0
+    wind_speed = max(0.0, float(controls_display["wind_speed_10m (km/h)"]))
 
-    total_generation_mw = sum(raw_inputs[col] for col in ENERGY_COLS)
+    hour = int(ts.hour)
+    month = int(ts.month)
 
-    hour_sin = np.sin(2 * np.pi * selected_hour / 24)
-    hour_cos = np.cos(2 * np.pi * selected_hour / 24)
-    month_sin = np.sin(2 * np.pi * ts.month / 12)
-    month_cos = np.cos(2 * np.pi * ts.month / 12)
+    hour_sin = np.sin(2 * np.pi * hour / 24.0)
+    hour_cos = np.cos(2 * np.pi * hour / 24.0)
+    month_sin = np.sin(2 * np.pi * month / 12.0)
+    month_cos = np.cos(2 * np.pi * month / 12.0)
 
-    temp = raw_inputs["temperature_2m (°C)"]
-    rain = raw_inputs["rain (mm)"]
-    snowfall = raw_inputs["snowfall (cm)"]
-    humidity = raw_inputs["relative_humidity_2m (%)"]
-    wind_dir = raw_inputs["wind_direction_10m (°)"]
-    wind_speed = raw_inputs["wind_speed_10m (km/h)"]
-
-    temp_wind_interact = temp * wind_speed
-    generation_humidity_interact = total_generation_mw * humidity
-    pollution_stagnation_index = total_generation_mw / (wind_speed + 0.1)
-
+    stagnation = gen / (wind_speed + 0.1)
     wd_rad = np.deg2rad(wind_dir)
-    wind_x_vector = wind_speed * np.cos(wd_rad)
-    wind_y_vector = wind_speed * np.sin(wd_rad)
+    wind_x = wind_speed * np.cos(wd_rad)
+    wind_y = wind_speed * np.sin(wd_rad)
 
-    row = {
-        "A3_MW": raw_inputs["A3_MW"],
-        "A4_MW": raw_inputs["A4_MW"],
-        "A5_MW": raw_inputs["A5_MW"],
-        "B1_MW": raw_inputs["B1_MW"],
-        "B2_MW": raw_inputs["B2_MW"],
-        "total_generation_mw": total_generation_mw,
-        "temperature_2m (°C)": temp,
-        "rain (mm)": rain,
-        "snowfall (cm)": snowfall,
-        "relative_humidity_2m (%)": humidity,
-        "wind_direction_10m (°)": wind_dir,
-        "wind_speed_10m (km/h)": wind_speed,
-        "day_of_week": ts.dayofweek,
+    raw_values = {
         "hour_sin": hour_sin,
         "hour_cos": hour_cos,
         "month_sin": month_sin,
         "month_cos": month_cos,
-        "temp_wind_interact": temp_wind_interact,
-        "generation_humidity_interact": generation_humidity_interact,
-        "pollution_stagnation_index": pollution_stagnation_index,
-        "wind_x_vector": wind_x_vector,
-        "wind_y_vector": wind_y_vector,
+        "pollution_stagnation_index": stagnation,
+        "wind_x_vector": wind_x,
+        "wind_y_vector": wind_y,
+        "total_generation_mw": gen,
+        "temperature_2m (°C)": temp,
+        "rain (mm)": rain,
+        "relative_humidity_2m (%)": humidity,
+        "wind_direction_10m (°)": wind_dir,
+        "wind_speed_10m (km/h)": wind_speed,
     }
 
-    return pd.DataFrame([row], columns=MODEL_FEATURES)
-
-
-def predict_scenario(model, feature_df: pd.DataFrame) -> pd.Series:
-    pred = model.predict(feature_df)[0]
-    pred = np.clip(pred, a_min=0, a_max=None)
-    return pd.Series(pred, index=POLLUTANTS)
-
-
-def get_ranges(df: pd.DataFrame) -> dict:
-    ranges = {}
-
-    for col in RAW_CONTROL_COLS:
-        s = pd.to_numeric(df[col], errors="coerce").dropna()
-        if s.empty:
-            continue
-
-        if col in ENERGY_COLS:
-            lo = 0.0
-            hi = max(float(s.quantile(0.995)), float(s.max()))
-            default = float(s.median())
-            step = 1.0
-
-        elif col == "temperature_2m (°C)":
-            lo = float(np.floor(s.quantile(0.01) - 3))
-            hi = float(np.ceil(s.quantile(0.99) + 3))
-            default = float(s.median())
-            step = 0.5
-
-        elif col == "rain (mm)":
-            lo = 0.0
-            hi = float(np.ceil(max(s.quantile(0.995), 5)))
-            default = float(s.median())
-            step = 0.1
-
-        elif col == "snowfall (cm)":
-            lo = 0.0
-            hi = float(np.ceil(max(s.quantile(0.995), 2)))
-            default = float(s.median())
-            step = 0.1
-
-        elif col == "relative_humidity_2m (%)":
-            lo = 0.0
-            hi = 100.0
-            default = float(s.median())
-            step = 1.0
-
-        elif col == "wind_direction_10m (°)":
-            lo = 0
-            hi = 359
-            default = int(round(s.median()))
-            step = 1
-
-        elif col == "wind_speed_10m (km/h)":
-            lo = 0.0
-            hi = float(np.ceil(max(s.quantile(0.995), 20)))
-            default = float(s.median())
-            step = 0.5
-
+    row = {}
+    for col in feature_cols:
+        if col == "pm25_lag_1":
+            row[col] = float(lag1_model_space)
+        elif col == "pm25_lag_24":
+            row[col] = float(lag24_model_space)
         else:
-            lo = float(s.min())
-            hi = float(s.max())
-            default = float(s.median())
-            step = 0.1
+            row[col] = scale_value(raw_values.get(col, 0.0), col, scaler)
 
-        ranges[col] = {
-            "min": lo,
-            "max": hi,
-            "default": default,
-            "step": step,
-        }
-
-    return ranges
+    return pd.DataFrame([row], columns=feature_cols)
 
 
-def initialize_session_state(ranges: dict, df: pd.DataFrame):
-    latest_date = df["datetime"].max().date()
-
-    if "scenario_date" not in st.session_state:
-        st.session_state.scenario_date = latest_date
-
-    if "scenario_hour" not in st.session_state:
-        st.session_state.scenario_hour = 12
-
-    if "selected_target" not in st.session_state:
-        st.session_state.selected_target = "pm25"
-
-    if "sensitivity_feature" not in st.session_state:
-        st.session_state.sensitivity_feature = "wind_speed_10m (km/h)"
-
-    for col, key in SESSION_KEYS.items():
-        if key not in st.session_state:
-            st.session_state[key] = ranges[col]["default"]
+def predict_pm25(model, row: pd.DataFrame, scaler) -> tuple[float, float]:
+    pred_model = float(model.predict(row)[0])
+    pred_real = inverse_scale_value(pred_model, TARGET, scaler)
+    return pred_model, pred_real
 
 
-def apply_preset(preset_name: str, df: pd.DataFrame, ranges: dict):
-    q = df[RAW_CONTROL_COLS].quantile([0.1, 0.25, 0.5, 0.75, 0.9]).to_dict()
+def get_lag(history_model: pd.Series, ts: pd.Timestamp, hours: int) -> float:
+    lag_ts = ts - pd.Timedelta(hours=hours)
 
-    def qv(col, quant):
-        return float(q[float(quant)][col])
+    if lag_ts in history_model.index:
+        return float(history_model.loc[lag_ts])
 
-    if preset_name == "Winter stagnation":
-        values = {
-            "A3_MW": qv("A3_MW", 0.75),
-            "A4_MW": qv("A4_MW", 0.75),
-            "A5_MW": qv("A5_MW", 0.60),
-            "B1_MW": qv("B1_MW", 0.75),
-            "B2_MW": qv("B2_MW", 0.75),
-            "temperature_2m (°C)": qv("temperature_2m (°C)", 0.10),
-            "rain (mm)": 0.0,
-            "snowfall (cm)": qv("snowfall (cm)", 0.50),
-            "relative_humidity_2m (%)": qv("relative_humidity_2m (%)", 0.90),
-            "wind_direction_10m (°)": qv("wind_direction_10m (°)", 0.50),
-            "wind_speed_10m (km/h)": max(qv("wind_speed_10m (km/h)", 0.10), 0.5),
-        }
-        st.session_state.scenario_hour = 21
+    older = history_model.loc[history_model.index <= lag_ts]
+    if not older.empty:
+        return float(older.iloc[-1])
 
-    elif preset_name == "Windy clean day":
-        values = {
-            "A3_MW": qv("A3_MW", 0.40),
-            "A4_MW": qv("A4_MW", 0.40),
-            "A5_MW": qv("A5_MW", 0.30),
-            "B1_MW": qv("B1_MW", 0.40),
-            "B2_MW": qv("B2_MW", 0.40),
-            "temperature_2m (°C)": qv("temperature_2m (°C)", 0.75),
-            "rain (mm)": qv("rain (mm)", 0.10),
-            "snowfall (cm)": 0.0,
-            "relative_humidity_2m (%)": qv("relative_humidity_2m (%)", 0.40),
-            "wind_direction_10m (°)": qv("wind_direction_10m (°)", 0.50),
-            "wind_speed_10m (km/h)": qv("wind_speed_10m (km/h)", 0.90),
-        }
-        st.session_state.scenario_hour = 14
-
-    elif preset_name == "High generation night":
-        values = {
-            "A3_MW": qv("A3_MW", 0.90),
-            "A4_MW": qv("A4_MW", 0.90),
-            "A5_MW": qv("A5_MW", 0.75),
-            "B1_MW": qv("B1_MW", 0.90),
-            "B2_MW": qv("B2_MW", 0.90),
-            "temperature_2m (°C)": qv("temperature_2m (°C)", 0.25),
-            "rain (mm)": 0.0,
-            "snowfall (cm)": 0.0,
-            "relative_humidity_2m (%)": qv("relative_humidity_2m (%)", 0.75),
-            "wind_direction_10m (°)": qv("wind_direction_10m (°)", 0.50),
-            "wind_speed_10m (km/h)": qv("wind_speed_10m (km/h)", 0.20),
-        }
-        st.session_state.scenario_hour = 23
-
-    elif preset_name == "Rain washout":
-        values = {
-            "A3_MW": qv("A3_MW", 0.60),
-            "A4_MW": qv("A4_MW", 0.60),
-            "A5_MW": qv("A5_MW", 0.50),
-            "B1_MW": qv("B1_MW", 0.60),
-            "B2_MW": qv("B2_MW", 0.60),
-            "temperature_2m (°C)": qv("temperature_2m (°C)", 0.50),
-            "rain (mm)": max(qv("rain (mm)", 0.90), 1.0),
-            "snowfall (cm)": 0.0,
-            "relative_humidity_2m (%)": qv("relative_humidity_2m (%)", 0.90),
-            "wind_direction_10m (°)": qv("wind_direction_10m (°)", 0.50),
-            "wind_speed_10m (km/h)": qv("wind_speed_10m (km/h)", 0.60),
-        }
-        st.session_state.scenario_hour = 10
-
-    else:
-        return
-
-    for col, value in values.items():
-        key = SESSION_KEYS[col]
-        lo = ranges[col]["min"]
-        hi = ranges[col]["max"]
-        st.session_state[key] = max(lo, min(hi, value))
+    return float(history_model.iloc[0])
 
 
-def get_current_raw_inputs() -> dict:
+def run_historical_counterfactual(
+    ts: pd.Timestamp,
+    df_model_space: pd.DataFrame,
+    df_display: pd.DataFrame,
+    model,
+    feature_cols: list[str],
+    scaler,
+    settings: dict[str, float],
+) -> dict[str, object]:
+    history_model = pd.Series(
+        df_model_space[TARGET].values,
+        index=df_model_space["timestamp"]
+    ).sort_index()
+
+    base_controls = nearest_historical_controls(df_display, ts)
+    scenario_controls = apply_scenario_adjustments(base_controls, settings)
+
+    lag1 = get_lag(history_model, ts, 1)
+    lag24 = get_lag(history_model, ts, 24)
+
+    base_row = build_catboost_row(ts, base_controls, lag1, lag24, feature_cols, scaler)
+    scenario_row = build_catboost_row(ts, scenario_controls, lag1, lag24, feature_cols, scaler)
+
+    _, pred_base_real = predict_pm25(model, base_row, scaler)
+    _, pred_scenario_real = predict_pm25(model, scenario_row, scaler)
+
+    actual_model = float(history_model.loc[history_model.index <= ts].iloc[-1])
+    actual_real = inverse_scale_value(actual_model, TARGET, scaler)
+
     return {
-        col: float(st.session_state[SESSION_KEYS[col]])
-        for col in RAW_CONTROL_COLS
+        "base_controls": base_controls,
+        "scenario_controls": scenario_controls,
+        "pred_base_real": pred_base_real,
+        "pred_scenario_real": pred_scenario_real,
+        "actual_real": actual_real,
     }
 
 
-def get_baseline_inputs(df: pd.DataFrame, selected_date, selected_hour: int) -> dict:
-    month = pd.Timestamp(selected_date).month
+def run_recursive_future_forecast(
+    start_ts: pd.Timestamp,
+    horizon: int,
+    df_model_space: pd.DataFrame,
+    df_display: pd.DataFrame,
+    model,
+    feature_cols: list[str],
+    scaler,
+    settings: dict[str, float],
+) -> pd.DataFrame:
+    history_model = pd.Series(
+        df_model_space[TARGET].values,
+        index=df_model_space["timestamp"]
+    ).sort_index()
 
-    subset = df[
-        (df["datetime"].dt.month == month) &
-        (df["datetime"].dt.hour == selected_hour)
-    ].copy()
+    rows = []
 
-    if len(subset) < 80:
-        subset = df[df["datetime"].dt.hour == selected_hour].copy()
+    for step in range(horizon):
+        ts = start_ts + pd.Timedelta(hours=step)
 
-    if len(subset) < 80:
-        subset = df.copy()
+        base_controls = profile_controls(df_display, ts)
+        scenario_controls = apply_scenario_adjustments(base_controls, settings)
 
-    baseline = {col: float(subset[col].median()) for col in RAW_CONTROL_COLS}
-    return baseline
+        lag1 = get_lag(history_model, ts, 1)
+        lag24 = get_lag(history_model, ts, 24)
+
+        row = build_catboost_row(ts, scenario_controls, lag1, lag24, feature_cols, scaler)
+        pred_model, pred_real = predict_pm25(model, row, scaler)
+
+        history_model.loc[ts] = pred_model
+
+        rows.append(
+            {
+                "timestamp": ts,
+                "PM2.5 forecast": pred_real,
+                "Baseline generation": base_controls["total_generation_mw"],
+                "Scenario generation": scenario_controls["total_generation_mw"],
+                "Baseline temperature": base_controls["temperature_2m (°C)"],
+                "Scenario temperature": scenario_controls["temperature_2m (°C)"],
+                "Baseline wind": base_controls["wind_speed_10m (km/h)"],
+                "Scenario wind": scenario_controls["wind_speed_10m (km/h)"],
+                "Baseline rain": base_controls["rain (mm)"],
+                "Scenario rain": scenario_controls["rain (mm)"],
+            }
+        )
+
+    return pd.DataFrame(rows)
 
 
-def make_gauge(value: float, reference: float, pollutant: str, history: pd.Series) -> go.Figure:
-    q25 = float(history.quantile(0.25))
-    q50 = float(history.quantile(0.50))
-    q75 = float(history.quantile(0.75))
-    q99 = float(history.quantile(0.99))
-    max_range = max(q99, value * 1.15, reference * 1.15, 1.0)
+def prepare_backtest_frame(df: pd.DataFrame | None, scaler) -> pd.DataFrame | None:
+    if df is None or df.empty:
+        return None
 
-    fig = go.Figure(
+    time_col = next((c for c in TIME_CANDIDATES if c in df.columns), None)
+    if time_col is None:
+        return None
+
+    out = df.copy()
+    out[time_col] = pd.to_datetime(out[time_col], errors="coerce")
+    out = out.dropna(subset=[time_col]).rename(columns={time_col: "timestamp"})
+
+    actual_candidates = ["actual_pm25", "actual_real", "actual", TARGET, "actual_scaled"]
+    pred_candidates = ["pred_pm25", "pred_real", "pred", "forecast", "prediction"]
+
+    actual_col = next((c for c in actual_candidates if c in out.columns), None)
+    pred_col = next((c for c in pred_candidates if c in out.columns), None)
+
+    if actual_col is None or pred_col is None:
+        return None
+
+    out["actual_plot"] = pd.to_numeric(out[actual_col], errors="coerce")
+    out["pred_plot"] = pd.to_numeric(out[pred_col], errors="coerce")
+
+    if actual_col == "actual_scaled":
+        out["actual_plot"] = out["actual_plot"].apply(
+            lambda x: inverse_scale_value(x, TARGET, scaler)
+        )
+
+    if pred_col == "pred":
+        out["pred_plot"] = out["pred_plot"].apply(
+            lambda x: inverse_scale_value(x, TARGET, scaler)
+        )
+
+    out = out.dropna(subset=["timestamp", "actual_plot", "pred_plot"]).sort_values("timestamp")
+    return out[["timestamp", "actual_plot", "pred_plot"]]
+
+
+def build_feature_importance_chart(df: pd.DataFrame | None) -> go.Figure | None:
+    if df is None or df.empty:
+        return None
+
+    work = df.copy()
+    feature_col = "feature" if "feature" in work.columns else work.columns[0]
+    value_col = "importance" if "importance" in work.columns else work.columns[1]
+
+    work = work[[feature_col, value_col]].copy()
+    work.columns = ["feature", "importance"]
+    work["label"] = work["feature"].map(lambda x: DISPLAY_NAMES.get(x, x))
+    work = work.sort_values("importance", ascending=False).head(12)
+
+    fig = px.bar(
+        work,
+        x="importance",
+        y="label",
+        orientation="h",
+        title="CatBoost feature importance",
+    )
+    fig.update_layout(height=420, yaxis_title="")
+    return fig
+
+
+def build_metric_figure(actual: float, base: float, scenario: float) -> go.Figure:
+    max_val = max(actual, base, scenario, 1.0) * 1.25
+
+    fig = go.Figure()
+    fig.add_trace(
         go.Indicator(
             mode="gauge+number+delta",
-            value=float(value),
-            delta={"reference": float(reference), "relative": False},
-            title={"text": DISPLAY_NAMES.get(pollutant, pollutant)},
+            value=scenario,
+            delta={"reference": base},
+            title={"text": "PM2.5 scenario forecast"},
             gauge={
-                "axis": {"range": [0, max_range]},
-                "bar": {"thickness": 0.35},
-                "steps": [
-                    {"range": [0, q25], "color": "#d8f3dc"},
-                    {"range": [q25, q50], "color": "#ffe8a1"},
-                    {"range": [q50, q75], "color": "#ffd6a5"},
-                    {"range": [q75, max_range], "color": "#ffadad"},
-                ],
-                "threshold": {
-                    "line": {"color": "black", "width": 4},
-                    "thickness": 0.85,
-                    "value": float(value),
-                },
+                "axis": {"range": [0, max_val]},
+                "threshold": {"line": {"color": "black", "width": 4}, "value": actual},
             },
         )
     )
@@ -488,454 +609,388 @@ def make_gauge(value: float, reference: float, pollutant: str, history: pd.Serie
     return fig
 
 
-def make_pollutant_bar(pred_current: pd.Series, pred_baseline: pd.Series) -> go.Figure:
-    df_plot = pd.DataFrame({
-        "Pollutant": [DISPLAY_NAMES.get(p, p) for p in POLLUTANTS] * 2,
-        "Value": list(pred_baseline.values) + list(pred_current.values),
-        "Scenario": ["Baseline"] * len(POLLUTANTS) + ["Current scenario"] * len(POLLUTANTS),
-    })
+def safe_float(v, default=0.0) -> float:
+    try:
+        return float(v)
+    except Exception:
+        return float(default)
 
-    fig = px.bar(
-        df_plot,
-        x="Pollutant",
-        y="Value",
-        color="Scenario",
-        barmode="group",
-        title="Baseline vs Current Scenario",
-        text_auto=".2f",
-    )
-    fig.update_layout(height=420)
-    return fig
+# ---------------------------------------------------------
+# LOAD FILES
+# ---------------------------------------------------------
+data_path = first_existing(DATA_CANDIDATES)
+scaler_path = first_existing(SCALER_CANDIDATES)
+catboost_model_path = first_existing(CATBOOST_MODEL_CANDIDATES)
+catboost_feature_path = first_existing(CATBOOST_FEATURE_CANDIDATES)
+catboost_run_info_path = first_existing(CATBOOST_RUN_INFO_CANDIDATES)
+catboost_forecast_path = first_existing(CATBOOST_FORECAST_CANDIDATES)
+catboost_metrics_path = first_existing(CATBOOST_METRICS_CANDIDATES)
+catboost_importance_path = first_existing(CATBOOST_IMPORTANCE_CANDIDATES)
+supervised_comparison_path = first_existing(SUPERVISED_COMPARISON_CANDIDATES)
+unsupervised_comparison_path = first_existing(UNSUPERVISED_COMPARISON_CANDIDATES)
 
-
-def make_distribution_chart(history: pd.Series, current_value: float, baseline_value: float, pollutant: str) -> go.Figure:
-    fig = px.histogram(
-        x=history,
-        nbins=50,
-        title=f"Historical Distribution of {DISPLAY_NAMES.get(pollutant, pollutant)}",
-    )
-    fig.add_vline(
-        x=float(baseline_value),
-        line_dash="dash",
-        annotation_text="Baseline",
-        annotation_position="top",
-    )
-    fig.add_vline(
-        x=float(current_value),
-        line_dash="solid",
-        annotation_text="Scenario",
-        annotation_position="top",
-    )
-    fig.update_layout(
-        xaxis_title=DISPLAY_NAMES.get(pollutant, pollutant),
-        yaxis_title="Frequency",
-        height=380,
-    )
-    return fig
-
-
-def make_daily_history_chart(df: pd.DataFrame, pollutant: str, current_value: float) -> go.Figure:
-    daily = (
-        df.set_index("datetime")[pollutant]
-        .resample("D")
-        .mean()
-        .reset_index()
-    )
-
-    fig = px.line(
-        daily,
-        x="datetime",
-        y=pollutant,
-        title=f"Daily Average Historical {DISPLAY_NAMES.get(pollutant, pollutant)}",
-    )
-    fig.add_hline(
-        y=float(current_value),
-        line_dash="dash",
-        annotation_text="Scenario prediction",
-        annotation_position="top left",
-    )
-    fig.update_layout(height=380, xaxis_title="Date", yaxis_title=DISPLAY_NAMES.get(pollutant, pollutant))
-    return fig
-
-
-def make_sensitivity_curve(
-    model,
-    selected_date,
-    selected_hour: int,
-    current_raw: dict,
-    feature_name: str,
-    feature_min: float,
-    feature_max: float,
-    pollutant: str,
-    n_points: int = 40,
-) -> go.Figure:
-    sweep_values = np.linspace(feature_min, feature_max, n_points)
-    rows = []
-
-    for value in sweep_values:
-        raw_copy = current_raw.copy()
-        raw_copy[feature_name] = float(value)
-
-        # Keep wind direction within valid range
-        if feature_name == "wind_direction_10m (°)":
-            raw_copy[feature_name] = float(value % 360)
-
-        feature_row = build_feature_row(selected_date, selected_hour, raw_copy)
-        pred = predict_scenario(model, feature_row)
-
-        rows.append({
-            feature_name: float(value),
-            pollutant: float(pred[pollutant]),
-        })
-
-    sweep_df = pd.DataFrame(rows)
-
-    fig = px.line(
-        sweep_df,
-        x=feature_name,
-        y=pollutant,
-        title=f"Sensitivity of {DISPLAY_NAMES.get(pollutant, pollutant)} to {DISPLAY_NAMES.get(feature_name, feature_name)}",
-    )
-    fig.add_vline(
-        x=float(current_raw[feature_name]),
-        line_dash="dash",
-        annotation_text="Current value",
-        annotation_position="top",
-    )
-    fig.update_layout(
-        height=420,
-        xaxis_title=DISPLAY_NAMES.get(feature_name, feature_name),
-        yaxis_title=DISPLAY_NAMES.get(pollutant, pollutant),
-    )
-    return fig
-
-
-def render_metric_cards(pred_current: pd.Series, pred_baseline: pd.Series):
-    cols = st.columns(len(POLLUTANTS))
-    for i, pollutant in enumerate(POLLUTANTS):
-        delta = float(pred_current[pollutant] - pred_baseline[pollutant])
-        cols[i].metric(
-            DISPLAY_NAMES.get(pollutant, pollutant),
-            f"{pred_current[pollutant]:.2f}",
-            f"{delta:+.2f}",
-        )
-
-
-st.title("Prishtina Live Pollution Simulator")
+# ---------------------------------------------------------
+# HEADER
+# ---------------------------------------------------------
+st.title("Prishtina PM2.5 Forecast Studio")
 st.caption(
-    "Interactive scenario explorer for electricity generation, weather conditions and live pollution response."
+    "Ky version është i lidhur me artefaktet e fazës së dytë: CatBoost për forecast live, "
+    "dhe tabelat krahasuese për LightGBM, SARIMAX dhe modelet unsupervised."
 )
 
-if not DATA_PATH.exists():
-    st.error(
-        f"Nuk u gjet dataset-i te kjo rrugë: {DATA_PATH}\n\n"
-        "Vendose `app.py` në root të projektit dhe sigurohu që ekziston "
-        "`data/phase_1/2D_validated_final_dataset.csv`."
-    )
+# ---------------------------------------------------------
+# BASIC FILE CHECK
+# ---------------------------------------------------------
+if data_path is None:
+    st.error("Nuk u gjet dataset-i `4E_selected_dataset.csv`.")
     st.stop()
 
+# ---------------------------------------------------------
+# LOAD DATA
+# ---------------------------------------------------------
 try:
-    training_df = load_training_frame(str(DATA_PATH))
-    model, metrics_df = train_model(str(DATA_PATH))
-except Exception as e:
-    st.exception(e)
+    df_model = load_phase1_frame(str(data_path))
+    model, feature_cols, scaler = load_catboost_bundle(
+        str(catboost_model_path) if catboost_model_path else None,
+        str(catboost_feature_path) if catboost_feature_path else None,
+        str(catboost_run_info_path) if catboost_run_info_path else None,
+        str(scaler_path) if scaler_path else None,
+    )
+    df_display = build_display_frame(df_model, str(scaler_path) if scaler_path else None)
+except Exception as exc:
+    st.exception(exc)
     st.stop()
 
-ranges = get_ranges(training_df)
-initialize_session_state(ranges, training_df)
+MODEL_READY = model is not None
 
-st.sidebar.header("Scenario Controls")
+supervised_df = load_optional_csv(str(supervised_comparison_path) if supervised_comparison_path else None)
+unsupervised_df = load_optional_csv(str(unsupervised_comparison_path) if unsupervised_comparison_path else None)
+catboost_forecast_df = load_optional_csv(str(catboost_forecast_path) if catboost_forecast_path else None)
+catboost_metrics_df = load_optional_csv(str(catboost_metrics_path) if catboost_metrics_path else None)
+catboost_importance_df = load_optional_csv(str(catboost_importance_path) if catboost_importance_path else None)
+backtest_df = prepare_backtest_frame(catboost_forecast_df, scaler)
 
-preset_name = st.sidebar.selectbox(
-    "Preset scenario",
-    ["Custom", "Winter stagnation", "Windy clean day", "High generation night", "Rain washout"],
-)
+last_hist_ts = pd.Timestamp(df_model["timestamp"].max())
+first_hist_ts = pd.Timestamp(df_model["timestamp"].min())
 
-if st.sidebar.button("Load preset"):
-    if preset_name != "Custom":
-        apply_preset(preset_name, training_df, ranges)
-        st.rerun()
+# ---------------------------------------------------------
+# WARNINGS
+# ---------------------------------------------------------
+if not CATBOOST_AVAILABLE:
+    st.warning(
+        "Paketa `catboost` nuk është e instaluar. "
+        "App-i do hapet, por tab-et e forecast-it do të jenë vetëm informative derisa ta instalosh."
+    )
+    st.code("python -m pip install catboost", language="powershell")
 
-st.sidebar.markdown("---")
-
-date_min = training_df["datetime"].min().date()
-date_max = training_df["datetime"].max().date()
-
-st.sidebar.date_input(
-    "Scenario date",
-    min_value=date_min,
-    max_value=date_max,
-    key="scenario_date",
-)
-
-st.sidebar.slider(
-    "Scenario hour",
-    min_value=0,
-    max_value=23,
-    key="scenario_hour",
-)
-
-st.sidebar.markdown("### Power Generation")
-
-for col in ENERGY_COLS:
-    cfg = ranges[col]
-    st.sidebar.slider(
-        DISPLAY_NAMES[col],
-        min_value=float(cfg["min"]),
-        max_value=float(cfg["max"]),
-        step=float(cfg["step"]),
-        key=SESSION_KEYS[col],
+elif catboost_model_path is None:
+    st.warning(
+        "Paketa `catboost` ekziston, por nuk u gjet file-i i modelit "
+        "`models/catboost_model/catboost_pm25_model.cbm`."
     )
 
-st.sidebar.markdown("### Weather Conditions")
+# ---------------------------------------------------------
+# SIDEBAR
+# ---------------------------------------------------------
+st.sidebar.header("Scenario setup")
 
-for col in WEATHER_COLS:
-    cfg = ranges[col]
+preset_name = st.sidebar.selectbox("Preset", list(PRESETS.keys()))
+preset_values = PRESETS[preset_name]
 
-    if col == "wind_direction_10m (°)":
-        st.sidebar.slider(
-            DISPLAY_NAMES[col],
-            min_value=int(cfg["min"]),
-            max_value=int(cfg["max"]),
-            step=int(cfg["step"]),
-            key=SESSION_KEYS[col],
-        )
-    else:
-        st.sidebar.slider(
-            DISPLAY_NAMES[col],
-            min_value=float(cfg["min"]),
-            max_value=float(cfg["max"]),
-            step=float(cfg["step"]),
-            key=SESSION_KEYS[col],
-        )
+generation_pct = st.sidebar.slider("Generation shift (%)", -40, 50, int(preset_values["generation_pct"]))
+temperature_delta = st.sidebar.slider("Temperature shift", -10.0, 10.0, float(preset_values["temperature_delta"]), 0.5)
+rain_pct = st.sidebar.slider("Rain shift (%)", -100, 300, int(preset_values["rain_pct"]))
+humidity_delta = st.sidebar.slider("Humidity shift", -30.0, 30.0, float(preset_values["humidity_delta"]), 1.0)
+wind_speed_pct = st.sidebar.slider("Wind speed shift (%)", -60, 80, int(preset_values["wind_speed_pct"]))
+wind_direction_shift = st.sidebar.slider("Wind direction shift (°)", -180, 180, int(preset_values["wind_direction_shift"]))
 
-st.sidebar.markdown("---")
+settings = {
+    "generation_pct": generation_pct,
+    "temperature_delta": temperature_delta,
+    "rain_pct": rain_pct,
+    "humidity_delta": humidity_delta,
+    "wind_speed_pct": wind_speed_pct,
+    "wind_direction_shift": wind_direction_shift,
+}
 
-st.sidebar.selectbox(
-    "Main displayed pollutant",
-    options=POLLUTANTS,
-    format_func=lambda x: DISPLAY_NAMES.get(x, x),
-    key="selected_target",
+# ---------------------------------------------------------
+# TABS
+# ---------------------------------------------------------
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["Overview", "Historical scenario replay", "Future forecast", "Model center"]
 )
 
-selected_date = st.session_state.scenario_date
-selected_hour = int(st.session_state.scenario_hour)
-selected_target = st.session_state.selected_target
-
-current_raw = get_current_raw_inputs()
-baseline_raw = get_baseline_inputs(training_df, selected_date, selected_hour)
-
-current_features = build_feature_row(selected_date, selected_hour, current_raw)
-baseline_features = build_feature_row(selected_date, selected_hour, baseline_raw)
-
-pred_current = predict_scenario(model, current_features)
-pred_baseline = predict_scenario(model, baseline_features)
-
-render_metric_cards(pred_current, pred_baseline)
-
-with st.expander("Model quality on holdout period"):
-    st.dataframe(metrics_df, use_container_width=True)
-
-tab1, tab2, tab3 = st.tabs(
-    ["Live Simulator", "Sensitivity Explorer", "Historical Context"]
-)
-
+# ---------------------------------------------------------
+# TAB 1 - OVERVIEW
+# ---------------------------------------------------------
 with tab1:
-    left, right = st.columns([1, 1])
+    c1, c2, c3 = st.columns(3)
+    c1.metric("History start", first_hist_ts.strftime("%Y-%m-%d %H:%M"))
+    c2.metric("History end", last_hist_ts.strftime("%Y-%m-%d %H:%M"))
+    c3.metric("Rows", f"{len(df_model):,}")
+
+    left, right = st.columns([1.2, 1])
 
     with left:
-        st.plotly_chart(
-            make_gauge(
-                value=float(pred_current[selected_target]),
-                reference=float(pred_baseline[selected_target]),
-                pollutant=selected_target,
-                history=training_df[selected_target],
-            ),
-            use_container_width=True,
+        pm25_daily = (
+            df_display.set_index("timestamp")[TARGET]
+            .resample("D")
+            .mean()
+            .reset_index()
         )
+        fig_daily = px.line(
+            pm25_daily,
+            x="timestamp",
+            y=TARGET,
+            title="Daily mean PM2.5 from processed dataset"
+        )
+        fig_daily.update_layout(height=380, yaxis_title="PM2.5")
+        st.plotly_chart(fig_daily, use_container_width=True)
 
     with right:
-        st.plotly_chart(
-            make_pollutant_bar(pred_current, pred_baseline),
-            use_container_width=True,
+        st.markdown("### Status")
+        if MODEL_READY:
+            st.success("CatBoost modeli është gati për forecast.")
+        else:
+            st.info("App-i është hapur, por CatBoost forecast nuk është aktiv ende.")
+
+        st.write(
+            """
+            Ky app:
+            - lexon dataset-in final të fazës së parë,
+            - përdor CatBoost për replay historik dhe forecast të ardhshëm,
+            - dhe shfaq tabelat krahasuese të modeleve të fazës së dytë.
+            """
         )
 
-    st.markdown("### Scenario summary")
-
-    summary_col1, summary_col2, summary_col3 = st.columns(3)
-    summary_col1.write(
-        f"""
-**Date/Hour**
-- Date: `{selected_date}`
-- Hour: `{selected_hour:02d}:00`
-- Day of week: `{pd.Timestamp(selected_date).day_name()}`
-        """
-    )
-
-    summary_col2.write(
-        f"""
-**Generation**
-- Total generation: `{sum(current_raw[c] for c in ENERGY_COLS):.2f} MW`
-- A units total: `{current_raw['A3_MW'] + current_raw['A4_MW'] + current_raw['A5_MW']:.2f} MW`
-- B units total: `{current_raw['B1_MW'] + current_raw['B2_MW']:.2f} MW`
-        """
-    )
-
-    summary_col3.write(
-        f"""
-**Weather**
-- Temp: `{current_raw['temperature_2m (°C)']:.2f} °C`
-- Humidity: `{current_raw['relative_humidity_2m (%)']:.2f} %`
-- Wind: `{current_raw['wind_speed_10m (km/h)']:.2f} km/h`
-- Rain: `{current_raw['rain (mm)']:.2f} mm`
-        """
-    )
-
-    st.markdown("### Animated transition")
-    st.caption("Animates the model response from the historical baseline to your custom scenario.")
-
-    animate = st.button("Play transition animation")
-
-    gauge_placeholder = st.empty()
-    bar_placeholder = st.empty()
-    line_placeholder = st.empty()
-
-    if animate:
-        frames = 30
-        progress = st.progress(0)
-        transition_rows = []
-
-        for i in range(frames):
-            alpha = i / (frames - 1)
-
-            raw_interp = {}
-            for col in RAW_CONTROL_COLS:
-                start_val = float(baseline_raw[col])
-                end_val = float(current_raw[col])
-                val = start_val + alpha * (end_val - start_val)
-
-                if col == "wind_direction_10m (°)":
-                    val = val % 360
-
-                raw_interp[col] = float(val)
-
-            interp_features = build_feature_row(selected_date, selected_hour, raw_interp)
-            interp_pred = predict_scenario(model, interp_features)
-
-            transition_rows.append(
-                {
-                    "Frame": i + 1,
-                    selected_target: float(interp_pred[selected_target]),
-                }
+        if supervised_df is not None and not supervised_df.empty and "R2" in supervised_df.columns:
+            best_row = supervised_df.sort_values("R2", ascending=False).iloc[0]
+            st.success(
+                f"Best supervised model nga CSV: {best_row['model']} | R² = {safe_float(best_row['R2']):.4f}"
             )
 
-            gauge_placeholder.plotly_chart(
-                make_gauge(
-                    value=float(interp_pred[selected_target]),
-                    reference=float(pred_baseline[selected_target]),
-                    pollutant=selected_target,
-                    history=training_df[selected_target],
+    st.markdown("### Latest observed PM2.5 values")
+    latest_real = df_display[["timestamp", TARGET]].tail(24).copy()
+    latest_real.columns = ["timestamp", "PM2.5"]
+    st.dataframe(latest_real, use_container_width=True, hide_index=True)
+
+# ---------------------------------------------------------
+# TAB 2 - HISTORICAL
+# ---------------------------------------------------------
+with tab2:
+    st.markdown("### Historical counterfactual")
+
+    if not MODEL_READY:
+        st.warning(
+            "Ky seksion kërkon CatBoost model aktiv. "
+            "Instalo `catboost` dhe sigurohu që ekziston file-i i modelit."
+        )
+    else:
+        cols = st.columns([1, 1, 1])
+        hist_date = cols[0].date_input(
+            "Date",
+            value=last_hist_ts.date(),
+            min_value=first_hist_ts.date(),
+            max_value=last_hist_ts.date(),
+            key="hist_date",
+        )
+        hist_hour = cols[1].slider("Hour", 0, 23, int(last_hist_ts.hour), key="hist_hour")
+        run_hist = cols[2].button("Run historical scenario", use_container_width=True)
+
+        selected_ts = pd.Timestamp(hist_date) + pd.Timedelta(hours=int(hist_hour))
+
+        if run_hist or "hist_result" not in st.session_state:
+            st.session_state["hist_result"] = run_historical_counterfactual(
+                ts=selected_ts,
+                df_model_space=df_model,
+                df_display=df_display,
+                model=model,
+                feature_cols=feature_cols,
+                scaler=scaler,
+                settings=settings,
+            )
+
+        hist_result = st.session_state["hist_result"]
+
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Actual PM2.5", f"{hist_result['actual_real']:.2f}")
+        m2.metric("Model baseline", f"{hist_result['pred_base_real']:.2f}")
+        m3.metric(
+            "Scenario PM2.5",
+            f"{hist_result['pred_scenario_real']:.2f}",
+            f"{hist_result['pred_scenario_real'] - hist_result['pred_base_real']:+.2f}",
+        )
+
+        left, right = st.columns([1, 1])
+
+        with left:
+            st.plotly_chart(
+                build_metric_figure(
+                    actual=hist_result["actual_real"],
+                    base=hist_result["pred_base_real"],
+                    scenario=hist_result["pred_scenario_real"],
                 ),
                 use_container_width=True,
             )
 
-            bar_placeholder.plotly_chart(
-                make_pollutant_bar(interp_pred, pred_baseline),
-                use_container_width=True,
+        with right:
+            compare_df = pd.DataFrame(
+                {
+                    "Version": ["Actual", "Baseline", "Scenario"],
+                    "PM2.5": [
+                        hist_result["actual_real"],
+                        hist_result["pred_base_real"],
+                        hist_result["pred_scenario_real"],
+                    ],
+                }
             )
+            fig_compare = px.bar(compare_df, x="Version", y="PM2.5", title="Actual vs baseline vs scenario")
+            fig_compare.update_layout(height=320)
+            st.plotly_chart(fig_compare, use_container_width=True)
 
-            transition_df = pd.DataFrame(transition_rows)
-            line_fig = px.line(
-                transition_df,
-                x="Frame",
-                y=selected_target,
-                markers=True,
-                title=f"Animated path of {DISPLAY_NAMES[selected_target]}",
-            )
-            line_fig.update_layout(height=300)
-            line_placeholder.plotly_chart(line_fig, use_container_width=True)
-
-            progress.progress((i + 1) / frames)
-            time.sleep(0.05)
-
-with tab2:
-    st.markdown("### Sensitivity explorer")
-    st.caption("Change one variable across its full range while keeping all others fixed.")
-
-    sens_col1, sens_col2 = st.columns([1, 1])
-
-    with sens_col1:
-        feature_name = st.selectbox(
-            "Variable to sweep",
-            options=RAW_CONTROL_COLS,
-            format_func=lambda x: DISPLAY_NAMES.get(x, x),
-            index=RAW_CONTROL_COLS.index(st.session_state.sensitivity_feature)
-            if st.session_state.sensitivity_feature in RAW_CONTROL_COLS else 0,
-        )
-
-    with sens_col2:
-        n_points = st.slider("Number of points", 20, 80, 40)
-
-    st.session_state.sensitivity_feature = feature_name
-
-    fig_sensitivity = make_sensitivity_curve(
-        model=model,
-        selected_date=selected_date,
-        selected_hour=selected_hour,
-        current_raw=current_raw,
-        feature_name=feature_name,
-        feature_min=float(ranges[feature_name]["min"]),
-        feature_max=float(ranges[feature_name]["max"]),
-        pollutant=selected_target,
-        n_points=n_points,
-    )
-    st.plotly_chart(fig_sensitivity, use_container_width=True)
-
-    st.markdown("### Current scenario inputs")
-    st.dataframe(
-        pd.DataFrame(
+        controls_df = pd.DataFrame(
             {
-                "Feature": [DISPLAY_NAMES.get(c, c) for c in RAW_CONTROL_COLS],
-                "Value": [current_raw[c] for c in RAW_CONTROL_COLS],
+                "Variable": [DISPLAY_NAMES.get(c, c) for c in DIRECT_CONTROL_COLS],
+                "Baseline": [hist_result["base_controls"][c] for c in DIRECT_CONTROL_COLS],
+                "Scenario": [hist_result["scenario_controls"][c] for c in DIRECT_CONTROL_COLS],
             }
-        ),
-        use_container_width=True,
-        hide_index=True,
-    )
+        )
+        st.dataframe(controls_df, use_container_width=True, hide_index=True)
 
+# ---------------------------------------------------------
+# TAB 3 - FUTURE
+# ---------------------------------------------------------
 with tab3:
-    hist_col1, hist_col2 = st.columns(2)
+    st.markdown("### Recursive future forecast")
 
-    with hist_col1:
-        st.plotly_chart(
-            make_distribution_chart(
-                history=training_df[selected_target],
-                current_value=float(pred_current[selected_target]),
-                baseline_value=float(pred_baseline[selected_target]),
-                pollutant=selected_target,
-            ),
-            use_container_width=True,
+    if not MODEL_READY:
+        st.warning(
+            "Ky seksion kërkon CatBoost model aktiv. "
+            "Pasi ta instalosh `catboost`, forecast-i do punojë pa ndryshim tjetër në kod."
         )
+    else:
+        cols = st.columns([1, 1, 1])
 
-    with hist_col2:
-        st.plotly_chart(
-            make_daily_history_chart(
-                df=training_df,
-                pollutant=selected_target,
-                current_value=float(pred_current[selected_target]),
-            ),
-            use_container_width=True,
+        default_future = (last_hist_ts + pd.Timedelta(hours=1)).date()
+        future_date = cols[0].date_input(
+            "Future start date",
+            value=default_future,
+            min_value=default_future,
+            key="future_date",
         )
+        future_hour = cols[1].slider("Future start hour", 0, 23, int((last_hist_ts + pd.Timedelta(hours=1)).hour))
+        horizon = cols[2].selectbox("Horizon (hours)", [24, 48, 72, 96, 168], index=1)
 
-    st.markdown("### Latest real observations")
-    latest_real = training_df[["datetime", *POLLUTANTS]].tail(10).copy()
-    latest_real.columns = [
-        "datetime",
-        "CO",
-        "NO2",
-        "O3",
-        "PM10",
-        "PM2.5",
-        "SO2",
-    ]
-    st.dataframe(latest_real, use_container_width=True)
+        start_future_ts = pd.Timestamp(future_date) + pd.Timedelta(hours=int(future_hour))
+
+        if start_future_ts <= last_hist_ts:
+            st.warning("Zgjidh një kohë që është pas fundit të historikut.")
+        else:
+            forecast_df = run_recursive_future_forecast(
+                start_ts=start_future_ts,
+                horizon=int(horizon),
+                df_model_space=df_model,
+                df_display=df_display,
+                model=model,
+                feature_cols=feature_cols,
+                scaler=scaler,
+                settings=settings,
+            )
+
+            a1, a2, a3, a4 = st.columns(4)
+            a1.metric("Start", start_future_ts.strftime("%Y-%m-%d %H:%M"))
+            a2.metric("End", forecast_df["timestamp"].iloc[-1].strftime("%Y-%m-%d %H:%M"))
+            a3.metric("Peak PM2.5", f"{forecast_df['PM2.5 forecast'].max():.2f}")
+            a4.metric("Mean PM2.5", f"{forecast_df['PM2.5 forecast'].mean():.2f}")
+
+            fig_forecast = px.line(
+                forecast_df,
+                x="timestamp",
+                y="PM2.5 forecast",
+                markers=True,
+                title="Future PM2.5 forecast path",
+            )
+            fig_forecast.update_layout(height=380, yaxis_title="PM2.5")
+            st.plotly_chart(fig_forecast, use_container_width=True)
+
+            fig_gen = go.Figure()
+            fig_gen.add_trace(
+                go.Scatter(
+                    x=forecast_df["timestamp"],
+                    y=forecast_df["Baseline generation"],
+                    mode="lines",
+                    name="Baseline generation",
+                )
+            )
+            fig_gen.add_trace(
+                go.Scatter(
+                    x=forecast_df["timestamp"],
+                    y=forecast_df["Scenario generation"],
+                    mode="lines",
+                    name="Scenario generation",
+                )
+            )
+            fig_gen.update_layout(
+                title="Baseline vs scenario generation",
+                height=320,
+                yaxis_title="Generation"
+            )
+            st.plotly_chart(fig_gen, use_container_width=True)
+
+            st.dataframe(forecast_df, use_container_width=True, hide_index=True)
+
+# ---------------------------------------------------------
+# TAB 4 - MODEL CENTER
+# ---------------------------------------------------------
+with tab4:
+    st.markdown("### Saved model outputs and comparisons")
+
+    if supervised_df is not None and not supervised_df.empty:
+        st.markdown("#### Supervised comparison")
+        st.dataframe(supervised_df, use_container_width=True, hide_index=True)
+
+        if "model" in supervised_df.columns and "R2" in supervised_df.columns:
+            fig_sup = px.bar(
+                supervised_df,
+                x="model",
+                y="R2",
+                title="Supervised model comparison by R²",
+                text_auto=".4f",
+            )
+            fig_sup.update_layout(height=350)
+            st.plotly_chart(fig_sup, use_container_width=True)
+
+    if unsupervised_df is not None and not unsupervised_df.empty:
+        st.markdown("#### Unsupervised comparison")
+        st.dataframe(unsupervised_df, use_container_width=True, hide_index=True)
+
+    if backtest_df is not None and not backtest_df.empty:
+        st.markdown("#### CatBoost backtest")
+        fig_backtest = go.Figure()
+        fig_backtest.add_trace(
+            go.Scatter(
+                x=backtest_df["timestamp"],
+                y=backtest_df["actual_plot"],
+                mode="lines",
+                name="Actual",
+            )
+        )
+        fig_backtest.add_trace(
+            go.Scatter(
+                x=backtest_df["timestamp"],
+                y=backtest_df["pred_plot"],
+                mode="lines",
+                name="Predicted",
+            )
+        )
+        fig_backtest.update_layout(height=380, title="CatBoost observed vs predicted")
+        st.plotly_chart(fig_backtest, use_container_width=True)
+
+    if catboost_importance_df is not None and not catboost_importance_df.empty:
+        fig_imp = build_feature_importance_chart(catboost_importance_df)
+        if fig_imp is not None:
+            st.plotly_chart(fig_imp, use_container_width=True)
+
+    if catboost_metrics_df is not None and not catboost_metrics_df.empty:
+        st.markdown("#### Saved CatBoost metrics")
+        st.dataframe(catboost_metrics_df, use_container_width=True, hide_index=True)
