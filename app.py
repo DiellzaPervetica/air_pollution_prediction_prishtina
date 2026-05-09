@@ -47,14 +47,17 @@ SCALER_CANDIDATES = [
 ]
 
 CATBOOST_MODEL_CANDIDATES = [
+    BASE_DIR / "models" / "phase_3" / "catboost_tuned" / "catboost_phase3_tuned_model.cbm",
     BASE_DIR / "models" / "catboost_model" / "catboost_pm25_model.cbm",
 ]
 
 CATBOOST_FEATURE_CANDIDATES = [
+    BASE_DIR / "models" / "phase_3" / "catboost_tuned" / "catboost_phase3_feature_columns.pkl",
     BASE_DIR / "models" / "catboost_model" / "catboost_feature_columns.pkl",
 ]
 
 CATBOOST_RUN_INFO_CANDIDATES = [
+    BASE_DIR / "data" / "phase_3" / "supervised" / "catboost_tuned" / "catboost_tuned_run_info.json",
     BASE_DIR / "data" / "phase_2" / "supervised" / "catboost" / "catboost_run_info.json",
 ]
 
@@ -76,6 +79,30 @@ SUPERVISED_COMPARISON_CANDIDATES = [
 
 UNSUPERVISED_COMPARISON_CANDIDATES = [
     BASE_DIR / "data" / "phase_2" / "comparison" / "unsupervised_model_comparison.csv",
+]
+
+PHASE3_METRICS_CANDIDATES = [
+    BASE_DIR / "data" / "phase_3" / "supervised" / "catboost_tuned" / "catboost_tuned_metrics.csv",
+]
+
+PHASE3_IMPROVEMENT_CANDIDATES = [
+    BASE_DIR / "data" / "phase_3" / "comparison" / "catboost_phase2_vs_phase3_improvement.csv",
+]
+
+PHASE3_SHAP_CANDIDATES = [
+    BASE_DIR / "data" / "phase_3" / "supervised" / "catboost_tuned" / "catboost_tuned_shap_global_importance.csv",
+]
+
+PHASE3_SEASONAL_CANDIDATES = [
+    BASE_DIR / "data" / "phase_3" / "supervised" / "catboost_tuned" / "catboost_tuned_seasonal_stability.csv",
+]
+
+PHASE3_DAILY_SNAPSHOT_CANDIDATES = [
+    BASE_DIR / "data" / "phase_3" / "forecasting" / "next_day_pm25_daily_summary_snapshot.csv",
+]
+
+PHASE3_HOURLY_SNAPSHOT_CANDIDATES = [
+    BASE_DIR / "data" / "phase_3" / "forecasting" / "next_day_pm25_hourly_forecast_snapshot.csv",
 ]
 
 TARGET = "pm25"
@@ -628,14 +655,20 @@ catboost_metrics_path = first_existing(CATBOOST_METRICS_CANDIDATES)
 catboost_importance_path = first_existing(CATBOOST_IMPORTANCE_CANDIDATES)
 supervised_comparison_path = first_existing(SUPERVISED_COMPARISON_CANDIDATES)
 unsupervised_comparison_path = first_existing(UNSUPERVISED_COMPARISON_CANDIDATES)
+phase3_metrics_path = first_existing(PHASE3_METRICS_CANDIDATES)
+phase3_improvement_path = first_existing(PHASE3_IMPROVEMENT_CANDIDATES)
+phase3_shap_path = first_existing(PHASE3_SHAP_CANDIDATES)
+phase3_seasonal_path = first_existing(PHASE3_SEASONAL_CANDIDATES)
+phase3_daily_snapshot_path = first_existing(PHASE3_DAILY_SNAPSHOT_CANDIDATES)
+phase3_hourly_snapshot_path = first_existing(PHASE3_HOURLY_SNAPSHOT_CANDIDATES)
 
 # ---------------------------------------------------------
 # HEADER
 # ---------------------------------------------------------
 st.title("Prishtina PM2.5 Forecast Studio")
 st.caption(
-    "Ky version është i lidhur me artefaktet e fazës së dytë: CatBoost për forecast live, "
-    "dhe tabelat krahasuese për LightGBM, SARIMAX dhe modelet unsupervised."
+    "Ky version është i lidhur me artefaktet e fazës 2 dhe fazës 3: CatBoost i tunuar, "
+    "krahasime, SHAP, stabilitet sezonal dhe snapshot offline për parashikim të ditës."
 )
 
 # ---------------------------------------------------------
@@ -668,6 +701,12 @@ unsupervised_df = load_optional_csv(str(unsupervised_comparison_path) if unsuper
 catboost_forecast_df = load_optional_csv(str(catboost_forecast_path) if catboost_forecast_path else None)
 catboost_metrics_df = load_optional_csv(str(catboost_metrics_path) if catboost_metrics_path else None)
 catboost_importance_df = load_optional_csv(str(catboost_importance_path) if catboost_importance_path else None)
+phase3_metrics_df = load_optional_csv(str(phase3_metrics_path) if phase3_metrics_path else None)
+phase3_improvement_df = load_optional_csv(str(phase3_improvement_path) if phase3_improvement_path else None)
+phase3_shap_df = load_optional_csv(str(phase3_shap_path) if phase3_shap_path else None)
+phase3_seasonal_df = load_optional_csv(str(phase3_seasonal_path) if phase3_seasonal_path else None)
+phase3_daily_snapshot_df = load_optional_csv(str(phase3_daily_snapshot_path) if phase3_daily_snapshot_path else None)
+phase3_hourly_snapshot_df = load_optional_csv(str(phase3_hourly_snapshot_path) if phase3_hourly_snapshot_path else None)
 backtest_df = prepare_backtest_frame(catboost_forecast_df, scaler)
 
 last_hist_ts = pd.Timestamp(df_model["timestamp"].max())
@@ -863,6 +902,33 @@ with tab2:
 with tab3:
     st.markdown("### Recursive future forecast")
 
+    if phase3_daily_snapshot_df is not None and not phase3_daily_snapshot_df.empty:
+        st.markdown("#### Stored next-day snapshot")
+        snapshot = phase3_daily_snapshot_df.iloc[0]
+        st.info(
+            "Ky seksion lexon rezultatet e ruajtura nga faza 3. "
+            "Nuk ka nevojë për shkarkim live nga KOSTT gjatë demos."
+        )
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Forecast date", str(snapshot.get("forecast_date", "")))
+        c2.metric("Mean PM2.5", f"{safe_float(snapshot.get('pm25_mean_forecast')):.2f}")
+        c3.metric("Peak PM2.5", f"{safe_float(snapshot.get('pm25_max_forecast')):.2f}")
+        c4.metric("Risk", str(snapshot.get("risk_category", "")))
+
+        if phase3_hourly_snapshot_df is not None and not phase3_hourly_snapshot_df.empty:
+            hourly_snapshot = phase3_hourly_snapshot_df.copy()
+            hourly_snapshot["timestamp"] = pd.to_datetime(hourly_snapshot["timestamp"], errors="coerce")
+            hourly_snapshot = hourly_snapshot.dropna(subset=["timestamp"])
+            fig_snapshot = px.line(
+                hourly_snapshot,
+                x="timestamp",
+                y="pm25_forecast",
+                markers=True,
+                title="Stored 24h PM2.5 forecast from KOSTT + weather snapshot",
+            )
+            fig_snapshot.update_layout(height=340, yaxis_title="PM2.5")
+            st.plotly_chart(fig_snapshot, use_container_width=True)
+
     if not MODEL_READY:
         st.warning(
             "Ky seksion kërkon CatBoost model aktiv. "
@@ -944,6 +1010,71 @@ with tab3:
 # ---------------------------------------------------------
 with tab4:
     st.markdown("### Saved model outputs and comparisons")
+
+    if phase3_metrics_df is not None and not phase3_metrics_df.empty:
+        st.markdown("#### Phase 3 tuned CatBoost")
+        show_cols = [
+            "selected_candidate",
+            "MAE",
+            "RMSE",
+            "R2",
+            "MAE_improvement",
+            "RMSE_improvement",
+            "R2_improvement",
+            "RMSE_improvement_pct",
+        ]
+        show_cols = [col for col in show_cols if col in phase3_metrics_df.columns]
+        st.dataframe(phase3_metrics_df[show_cols], use_container_width=True, hide_index=True)
+
+    if phase3_improvement_df is not None and not phase3_improvement_df.empty:
+        st.markdown("#### CatBoost phase 2 vs phase 3")
+        st.dataframe(phase3_improvement_df, use_container_width=True, hide_index=True)
+
+        plot_df = phase3_improvement_df[phase3_improvement_df["metric"].isin(["MAE", "RMSE", "R2"])].copy()
+        if not plot_df.empty:
+            plot_long = plot_df.melt(
+                id_vars=["metric"],
+                value_vars=["phase2_catboost", "phase3_tuned_catboost"],
+                var_name="Version",
+                value_name="Value",
+            )
+            fig_phase3 = px.bar(
+                plot_long,
+                x="metric",
+                y="Value",
+                color="Version",
+                barmode="group",
+                title="CatBoost improvement after tuning",
+            )
+            fig_phase3.update_layout(height=350)
+            st.plotly_chart(fig_phase3, use_container_width=True)
+
+    if phase3_shap_df is not None and not phase3_shap_df.empty:
+        st.markdown("#### Explainable AI: SHAP")
+        shap_plot = phase3_shap_df.head(10).copy()
+        fig_shap = px.bar(
+            shap_plot.iloc[::-1],
+            x="mean_abs_shap",
+            y="feature",
+            orientation="h",
+            title="Top SHAP drivers of PM2.5 prediction",
+        )
+        fig_shap.update_layout(height=420, yaxis_title="")
+        st.plotly_chart(fig_shap, use_container_width=True)
+
+    if phase3_seasonal_df is not None and not phase3_seasonal_df.empty:
+        st.markdown("#### Seasonal stability")
+        st.dataframe(phase3_seasonal_df, use_container_width=True, hide_index=True)
+        if "season" in phase3_seasonal_df.columns and "RMSE" in phase3_seasonal_df.columns:
+            fig_season = px.bar(
+                phase3_seasonal_df,
+                x="season",
+                y="RMSE",
+                title="Out-of-fold RMSE by season",
+                text_auto=".2f",
+            )
+            fig_season.update_layout(height=350)
+            st.plotly_chart(fig_season, use_container_width=True)
 
     if supervised_df is not None and not supervised_df.empty:
         st.markdown("#### Supervised comparison")

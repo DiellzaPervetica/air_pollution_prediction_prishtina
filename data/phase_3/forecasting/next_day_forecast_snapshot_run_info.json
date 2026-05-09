@@ -1,0 +1,21 @@
+{
+  "kostt_snapshot": {
+    "source_page": "https://kostt.com/Transparency/BasicMarketDataOnGeneration",
+    "source_file": "https://kostt.com/Content/ViewFiles/Transparency/BasicMarketDataOnGeneration/Plani%20i%20prodhimit%20total%20te%20energjise%20elektrike%20per%20diten%20ne%20vijim.xlsx",
+    "downloaded_at": "2026-05-09T12:10:58",
+    "http_last_modified": "Fri, 08 May 2026 12:54:49 GMT",
+    "raw_forecast_date": "2026-09-05",
+    "forecast_date": "2026-05-09",
+    "date_correction_note": "corrected by swapping day/month using HTTP Last-Modified + 1 day",
+    "generation_forecast_mwh": 4767.878,
+    "local_excel_path": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\forecasting\\external\\kostt_generation_plan_next_day_snapshot.xlsx"
+  },
+  "outputs": {
+    "daily_summary": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\forecasting\\next_day_pm25_daily_summary_snapshot.csv",
+    "hourly_forecast": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\forecasting\\next_day_pm25_hourly_forecast_snapshot.csv",
+    "generation_snapshot": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\forecasting\\kostt_next_day_generation_snapshot.csv",
+    "weather_snapshot": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\forecasting\\external\\open_meteo_next_day_weather_snapshot.csv",
+    "plot": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\pictures\\phase_3\\forecasting\\next_day_pm25_forecast_snapshot.png"
+  },
+  "offline_demo_policy": "Use the saved snapshot files first; refresh from KOSTT/Open-Meteo only when desired."
+}

@@ -1,0 +1,2 @@
+forecast_date,model_source,generation_forecast_mwh,pm25_mean_forecast,pm25_max_forecast,pm25_min_forecast,peak_hour,risk_category,weather_temperature_mean,weather_rain_sum,weather_wind_speed_mean,snapshot_note
+2026-05-09,phase_3_tuned_catboost,4767.878,6.621056278814453,10.162494126062825,4.016059486068277,2026-05-09 02:00:00,Low,13.145833333333334,2.5,5.133333333333333,Stored forecast snapshot; online refresh is optional for demo day.

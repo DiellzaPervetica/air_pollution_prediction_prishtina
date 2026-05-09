@@ -1,0 +1,16 @@
+feature,mean_abs_shap,mean_shap,direction_simple
+pm25_lag_1,0.7938917043416165,0.17476719407326022,higher values tend to increase prediction
+month_cos,0.10347347516160141,0.10334073679583784,higher values tend to increase prediction
+pm25_lag_24,0.07339705234380887,0.015634741412645287,higher values tend to increase prediction
+hour_sin,0.05606248828125912,-0.0001878623959067389,higher values tend to decrease prediction
+hour_cos,0.05566866394731958,-0.0021839245246863272,higher values tend to decrease prediction
+pollution_stagnation_index,0.04740391674812616,0.012119009127004652,higher values tend to increase prediction
+wind_speed_10m (km/h),0.03712845789257178,0.005743199508777827,higher values tend to increase prediction
+relative_humidity_2m (%),0.029322930045273796,0.002790986707399052,higher values tend to increase prediction
+rain (mm),0.02280837067806918,-0.009872655480855882,higher values tend to decrease prediction
+temperature_2m (°C),0.022279122283590334,-0.00715511148987597,higher values tend to decrease prediction
+total_generation_mw,0.022024920741984835,-0.008781180027409545,higher values tend to decrease prediction
+month_sin,0.020775171029131755,-0.002823204843378667,higher values tend to decrease prediction
+wind_x_vector,0.02068583541739702,0.004561872495129542,higher values tend to increase prediction
+wind_y_vector,0.01517008769962857,0.006417294304156596,higher values tend to increase prediction
+wind_direction_10m (°),0.012644198369856509,0.006235163721200132,higher values tend to increase prediction

@@ -1,0 +1,31 @@
+{
+  "input_path": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_1\\4E_selected_dataset.csv",
+  "model_path": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\models\\phase_3\\catboost_tuned\\catboost_phase3_tuned_model.cbm",
+  "feature_columns_path": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\models\\phase_3\\catboost_tuned\\catboost_phase3_feature_columns.pkl",
+  "selected_candidate": "strong_regularized_depth6",
+  "selection_strategy": "lowest validation RMSE",
+  "outputs": {
+    "metrics": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\supervised\\catboost_tuned\\catboost_tuned_metrics.csv",
+    "tuning_candidates": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\supervised\\catboost_tuned\\catboost_tuning_candidates.csv",
+    "forecasts": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\supervised\\catboost_tuned\\catboost_tuned_forecasts.csv",
+    "shap": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\supervised\\catboost_tuned\\catboost_tuned_shap_global_importance.csv",
+    "seasonal_stability": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\supervised\\catboost_tuned\\catboost_tuned_seasonal_stability.csv"
+  },
+  "feature_columns": [
+    "hour_sin",
+    "hour_cos",
+    "month_sin",
+    "month_cos",
+    "pollution_stagnation_index",
+    "wind_x_vector",
+    "wind_y_vector",
+    "total_generation_mw",
+    "temperature_2m (\u00b0C)",
+    "rain (mm)",
+    "relative_humidity_2m (%)",
+    "wind_direction_10m (\u00b0)",
+    "wind_speed_10m (km/h)",
+    "pm25_lag_1",
+    "pm25_lag_24"
+  ]
+}

@@ -61,9 +61,10 @@
    - [Artefaktet e krijuara nga modelet](#artefaktet-e-krijuara-nga-modelet)
   - [Vizualizimet e fazës së dytë](#vizualizimet-e-fazës-së-dytë)
    - [Rezultati i zgjeruar i pipeline-it](#rezultati-i-zgjeruar-i-pipeline-it)
-7. [Zgjerime në vazhdim](#zgjerime-në-vazhdim)
-8. [Anëtarët e grupit](#anëtarët-e-grupit)
-9. [Acknowledgments](#acknowledgments)
+7. [03 Rievaluimi dhe përmirësimi i modelit](#03-rievaluimi-dhe-përmirësimi-i-modelit)
+8. [Zgjerime në vazhdim](#zgjerime-në-vazhdim)
+9. [Anëtarët e grupit](#anëtarët-e-grupit)
+10. [Acknowledgments](#acknowledgments)
 
 ---
 
@@ -3759,6 +3760,99 @@ Rezultati final përfshin:
 Kjo do të thotë se pipeline-i i ndërtuar në këtë projekt tashmë përbën jo vetëm një proces të përgatitjes së të dhënave, por edhe një bazë funksionale për krahasim modelesh, analiza të mëtejshme dhe zgjerim në faza të ardhshme.
 
 ---
+
+## 03 Rievaluimi dhe përmirësimi i modelit
+
+Faza e tretë vazhdon logjikën e fazës së dytë, por fokusohet vetëm te modelet supervised. Fillimisht ruhen grafikat dhe tabelat që krahasojnë `LightGBM`, `CatBoost` dhe `SARIMAX`, pastaj puna vazhdon me `CatBoost`, sepse në holdout test të fazës së dytë ishte modeli me `R²` më të lartë.
+
+Qëllimi i kësaj faze nuk është ndërtimi i një modeli krejtësisht të ri, por rievaluimi i modelit më të mirë dhe përmirësimi i tij përmes tuning të kontrolluar të hiperparametrave. Për këtë arsye është krijuar folderi:
+
+- `src/phase_3/supervised/catboost_phase3_tuning.py`
+- `src/phase_3/forecasting/build_next_day_forecast_snapshot.py`
+- `src/phase_3/comparison/build_phase3_standardized_outputs.py`
+
+Output-et ruhen në:
+
+- `data/phase_3/supervised/catboost_tuned/`
+- `data/phase_3/forecasting/`
+- `data/phase_3/comparison/`
+- `pictures/phase_3/`
+
+### Fine-tuning i CatBoost
+
+Në vend të një kërkimi shumë kompleks, janë testuar disa konfigurime konservative të `CatBoostRegressor`, duke ndryshuar kryesisht:
+
+- `depth`
+- `learning_rate`
+- `l2_leaf_reg`
+- `random_strength`
+- `bagging_temperature`
+- `early_stopping_rounds`
+
+Modeli final është zgjedhur sipas `validation_RMSE`, ndërsa rezultatet finale janë raportuar në holdout test, njëjtë si në fazën e dytë.
+
+| Metrika | CatBoost faza 2 | CatBoost faza 3 | Përmirësimi |
+|---|---:|---:|---:|
+| MAE | 2.6918 | 2.6794 | 0.0124 |
+| RMSE | 4.3210 | 4.3002 | 0.0208 |
+| R² | 0.8147 | 0.8165 | 0.0018 |
+| MAPE (%) | 23.4860 | 23.3603 | 0.1257 |
+| SMAPE (%) | 21.5382 | 21.4653 | 0.0729 |
+
+Përmirësimi është modest, por i qëndrueshëm dhe metodologjikisht i pastër. Kjo tregon se modeli i fazës së dytë tashmë ishte mjaft i fortë, ndërsa tuning-u i fazës së tretë e reduktoi lehtë gabimin dhe overfitting-un pa e komplikuar kodin.
+
+![CatBoost Phase 2 vs Phase 3](pictures/phase_3/comparison/catboost_phase2_vs_phase3_metrics.png)
+
+### Kontributi 1: Explainable AI me SHAP
+
+Për të bërë modelin më të kuptueshëm për përdorues të zakonshëm, në fazën e tretë është shtuar interpretimi me `SHAP`. Kjo ndihmon të shpjegohet jo vetëm çfarë parashikon modeli, por edhe pse arrin në atë parashikim.
+
+SHAP tregon ndikimin mesatar të secilit feature në parashikimin e `PM2.5`. Kjo është më e interpretueshme se vetëm `feature importance`, sepse lidhet drejtpërdrejt me kontributin e feature-ave në output-in e modelit.
+
+![SHAP Global Importance](pictures/phase_3/supervised/catboost_tuned/catboost_tuned_shap_global_importance.png)
+
+### Kontributi 2: Stabiliteti sezonal
+
+Përveç metrikave të përgjithshme, modeli është vlerësuar edhe me `TimeSeriesSplit`, duke analizuar performancën sipas sezoneve dhe muajve. Kjo është e rëndësishme sepse ndotja e ajrit nuk sillet njësoj gjatë gjithë vitit: dimri, periudhat me stagnim ajri, era, shiu dhe ndryshimet në prodhim të energjisë mund ta ndryshojnë sjelljen e `PM2.5`.
+
+Ky kontribut tregon nëse modeli mbetet i qëndrueshëm edhe kur ndryshojnë kushtet sezonale.
+
+![Seasonal Stability](pictures/phase_3/supervised/catboost_tuned/catboost_tuned_seasonal_stability.png)
+
+### Snapshot offline për parashikim të ditës
+
+Për të shmangur varësinë nga refresh-i live në ditën e mbrojtjes, është krijuar edhe një snapshot offline për parashikimin e ditës së ardhshme. Skripta:
+
+1. shkarkon dokumentin zyrtar të KOSTT-it `Plani i prodhimit total të energjisë elektrike për ditën në vijim`;
+2. ruan Excel-in në `data/phase_3/forecasting/external/`;
+3. merr motin orar nga Open-Meteo;
+4. e shpërndan totalin ditor të KOSTT-it në 24 orë sipas profilit historik të prodhimit;
+5. gjeneron parashikim 24-orësh me CatBoost-in e tunuar;
+6. ruan përmbledhjen ditore si CSV dhe figurë.
+
+Snapshot-i i ruajtur për demo është:
+
+| Data | KOSTT MWh | PM2.5 mesatar | PM2.5 maksimal | Risk |
+|---|---:|---:|---:|---|
+| 2026-05-09 | 4767.878 | 6.6211 | 10.1625 | Low |
+
+![Next Day PM2.5 Forecast Snapshot](pictures/phase_3/forecasting/next_day_pm25_forecast_snapshot.png)
+
+Ky dizajn e bën aplikacionin më të sigurt për prezantim: forecast-i i ruajtur mund të shfaqet pa pasur nevojë që KOSTT ta përditësojë file-in në kohë. Refresh-i online mbetet opsional, ndërsa demonstrimi kryesor mbështetet në artefaktet e ruajtura.
+
+### Interpretimi dhe përdorimi praktik
+
+Pas aplikimit të fazave, projekti arrin të paraqesë një pipeline të plotë: nga mbledhja dhe pastrimi i të dhënave, te krahasimi i modeleve, përmirësimi i modelit më të mirë, interpretimi me SHAP dhe ruajtja e një forecast-i praktik për ditën e ardhshme.
+
+Rezultatet mund të lexohen kështu:
+
+- metrikat `MAE` dhe `RMSE` tregojnë madhësinë mesatare të gabimit në `PM2.5`;
+- `R²` tregon sa mirë modeli shpjegon variacionin e ndotjes;
+- SHAP tregon cilët faktorë ndikojnë më shumë në parashikim;
+- stabiliteti sezonal tregon nëse modeli sillet mirë në kushte të ndryshme gjatë vitit;
+- snapshot-i i ditës e kthen modelin në një shembull praktik për përdorues jo-teknikë.
+
+Kjo mund t'u ndihmojë qytetarëve, institucioneve lokale dhe operatorëve që monitorojnë ndotjen, sepse e përkthen kombinimin e motit dhe energjisë në një sinjal më të lexueshëm për cilësinë e ajrit. Në të ardhmen, modeli mund të zgjerohet me burime më të drejtpërdrejta për emisione, të dhëna live të cilësisë së ajrit dhe validim më të gjatë në kohë.
 
 ## Zgjerime në vazhdim
 

@@ -1,0 +1,14 @@
+{
+  "data_outputs": {
+    "phase2_supervised_reference": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\comparison\\phase2_supervised_reference.csv",
+    "catboost_improvement": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\comparison\\catboost_phase2_vs_phase3_improvement.csv",
+    "tuning_reference": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\comparison\\catboost_phase3_tuning_reference.csv",
+    "forecast_snapshot_reference": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\data\\phase_3\\comparison\\next_day_forecast_snapshot_reference.csv"
+  },
+  "picture_outputs": {
+    "phase2_supervised_metrics": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\pictures\\phase_3\\comparison\\phase2_supervised_metrics_reference.png",
+    "catboost_improvement_metrics": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\pictures\\phase_3\\comparison\\catboost_phase2_vs_phase3_metrics.png",
+    "catboost_improvement_table": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\pictures\\phase_3\\comparison\\catboost_phase2_vs_phase3_improvement_table.png",
+    "forecast_snapshot_table": "C:\\Users\\perve\\Desktop\\air_pollution_prediction_prishtina\\pictures\\phase_3\\comparison\\next_day_forecast_snapshot_table.png"
+  }
+}
